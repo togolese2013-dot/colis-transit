@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import * as XLSX from "xlsx";
-import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from "@zxing/library";
+import { BrowserQRCodeReader, DecodeHintType } from "@zxing/library";
 
 const Icons = {
   Back: () => (
@@ -21,11 +21,11 @@ const Icons = {
   ),
   Scan: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-      <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-      <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-      <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-      <line x1="7" y1="12" x2="17" y2="12"></line>
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <rect x="7" y="7" width="3" height="3"></rect>
+      <rect x="14" y="7" width="3" height="3"></rect>
+      <rect x="7" y="14" width="3" height="3"></rect>
+      <rect x="14" y="14" width="1" height="1"></rect>
     </svg>
   ),
   Home: () => (
@@ -93,15 +93,13 @@ const AddPackage = () => {
   }, []);
 
   useEffect(() => {
-    let codeReader: BrowserMultiFormatReader | null = null;
+    let codeReader: BrowserQRCodeReader | null = null;
 
     if (isScanning && typeof window !== "undefined") {
       const hints = new Map();
-      const formats = [BarcodeFormat.QR_CODE, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.EAN_13];
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
       hints.set(DecodeHintType.TRY_HARDER, true);
 
-      codeReader = new BrowserMultiFormatReader(hints);
+      codeReader = new BrowserQRCodeReader(hints);
       
       const startScanning = async () => {
         try {
@@ -289,19 +287,20 @@ const AddPackage = () => {
               playsInline
               muted
             />
+            {/* Guide de scan visuel CARRE pour QR */}
             <div style={{ 
               position: 'absolute', 
               top: '50%', 
               left: '50%', 
               transform: 'translate(-50%, -50%)', 
-              width: '80%', 
-              height: '30%', 
+              width: '260px', 
+              height: '260px', 
               border: '2px solid rgba(255,102,0,0.8)',
               borderRadius: '12px',
               boxShadow: '0 0 0 4000px rgba(0,0,0,0.5)'
             }}>
               <div style={{ position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', color: 'white', fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                ALIGNER LE CODE ICI
+                PLACER LE QR CODE ICI
               </div>
             </div>
           </div>
@@ -351,7 +350,7 @@ const AddPackage = () => {
             }}
           >
             <Icons.Scan />
-            <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>SCAN ZXING</span>
+            <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>SCAN QR CODE</span>
           </button>
         </div>
 
@@ -361,7 +360,7 @@ const AddPackage = () => {
             type="text" 
             name="tracking_number" 
             className="form-input" 
-            placeholder="Attente du scan..." 
+            placeholder="Attente du QR..." 
             value={formData.tracking_number} 
             onChange={handleChange} 
             required 
