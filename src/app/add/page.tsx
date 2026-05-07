@@ -71,6 +71,7 @@ const AddPackage = () => {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoScanRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [formData, setFormData] = useState({
     tracking_number: "",
@@ -106,7 +107,7 @@ const AddPackage = () => {
     }
   }, []);
 
-  // SCAN PHOTO LOGIC (SMART LOGISTICS FILTER)
+  // SCAN PHOTO LOGIC (WITH IMAGE ENHANCEMENT FOR BLURRY CODES)
   const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -114,47 +115,61 @@ const AddPackage = () => {
     setLoading(true);
     setError(null);
     
-    // TENTATIVE 1 : On cherche spécifiquement le format logistique (CODE 128)
-    const hintsLogistics = new Map();
-    hintsLogistics.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE]);
-    hintsLogistics.set(DecodeHintType.TRY_HARDER, true);
-
-    const reader = new BrowserMultiFormatReader(hintsLogistics);
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE, BarcodeFormat.EAN_13]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    const reader = new BrowserMultiFormatReader(hints);
     
     try {
-      const imageUrl = URL.createObjectURL(file);
-      let result = null;
-
-      try {
-        // On essaie de trouver le code de transport d'abord
-        result = await reader.decodeFromImageUrl(imageUrl);
-      } catch (e) {
-        // Si échoué, on essaie avec TOUS les formats comme roue de secours
-        console.log("Premier essai échoué, passage au mode universel...");
-        const hintsUniversal = new Map();
-        hintsUniversal.set(DecodeHintType.TRY_HARDER, true);
-        const readerUniversal = new BrowserMultiFormatReader(hintsUniversal);
-        result = await readerUniversal.decodeFromImageUrl(imageUrl);
-      }
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
       
-      if (result) {
-        const text = result.getText();
-        
-        // Sécurité : Si le code est trop court (ex: 8-13 chiffres), c'est probablement un code produit (EAN)
-        // Les tracking numbers font généralement plus de 10-12 caractères.
-        if (text.length < 8 && !isNaN(Number(text))) {
-          setError("Ce code semble être un code produit. Essayez de cadrer uniquement le numéro de suivi plus long.");
+      await new Promise((resolve) => (img.onload = resolve));
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return;
+
+      // Étape 1 : On essaie avec l'image originale
+      try {
+        const result = await reader.decodeFromImageUrl(img.src);
+        if (result && result.getText().length > 6) {
+          playBeep();
+          vibrate();
+          setFormData(prev => ({ ...prev, tracking_number: result.getText() }));
           setLoading(false);
           return;
         }
+      } catch (e) {}
 
-        playBeep();
-        vibrate();
-        setFormData(prev => ({ ...prev, tracking_number: text }));
+      // Étape 2 : Si échec, on améliore l'image (Contraste + Noir et Blanc)
+      console.log("Amélioration de l'image pour code flou...");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // Filtres CSS Canvas pour forcer la netteté
+      ctx.filter = "contrast(200%) grayscale(100%) brightness(110%)";
+      ctx.drawImage(img, 0, 0);
+      
+      const enhancedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      
+      try {
+        const result = await reader.decodeFromImageUrl(enhancedDataUrl);
+        if (result) {
+          playBeep();
+          vibrate();
+          setFormData(prev => ({ ...prev, tracking_number: result.getText() }));
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        throw new Error("Impossible de lire le code, même avec amélioration.");
       }
+      
     } catch (err) {
       console.error("Scan error:", err);
-      setError("Désolé, le numéro de suivi n'est pas clair. Rapprochez-vous et assurez-vous que le code-barres soit bien horizontal et net.");
+      setError("Le code est trop flou. Essayez de stabiliser le téléphone ou de vous éloigner un peu pour que la mise au point se fasse.");
     } finally {
       setLoading(false);
       if (photoScanRef.current) photoScanRef.current.value = "";
@@ -286,6 +301,8 @@ const AddPackage = () => {
         <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls, .csv" onChange={handleExcelImport} />
       </header>
 
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
       <form onSubmit={handleSubmit}>
         {error && (
           <div style={{ 
@@ -318,7 +335,7 @@ const AddPackage = () => {
             </label>
           </div>
 
-          {/* SCAN PAR PHOTO (SMART) */}
+          {/* SCAN PAR PHOTO (POWERFUL) */}
           <button 
             type="button"
             onClick={() => photoScanRef.current?.click()}
@@ -344,7 +361,7 @@ const AddPackage = () => {
             ) : (
               <>
                 <Icons.Scan />
-                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "SCAN RÉUSSI !" : "SCANNER TRACKING"}</span>
+                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "DÉTECTÉ !" : "SCANNER TRACKING"}</span>
               </>
             )}
           </button>
