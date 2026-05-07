@@ -114,9 +114,14 @@ export default function AddPackage() {
               formatsToSupport: formatsToSupport
             },
             (decodedText: string) => {
+              console.log("Scan réussi:", decodedText);
+              // Vibration pour retour physique
+              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(200);
+              }
+              
               setFormData(prev => ({ ...prev, tracking_number: decodedText }));
               setIsScanning(false);
-              stopScanner();
             },
             () => {} 
           );
