@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Html5QrcodeScanner } from "html5-qrcode";
 import * as XLSX from "xlsx";
 
 const Icons = {
@@ -84,27 +83,50 @@ export default function AddPackage() {
   });
 
   useEffect(() => {
-    let scanner: Html5QrcodeScanner | null = null;
+    let html5QrCode: any = null;
+
+    const startScanner = async () => {
+      if (isScanning && typeof window !== "undefined") {
+        const { Html5Qrcode } = await import("html5-qrcode");
+        html5QrCode = new Html5Qrcode("reader");
+        
+        try {
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText: string) => {
+              setFormData(prev => ({ ...prev, tracking_number: decodedText }));
+              setIsScanning(false);
+              stopScanner();
+            },
+            () => {} // Ignorer les échecs de lecture continue
+          );
+        } catch (err) {
+          console.error("Erreur de démarrage du scanner:", err);
+          setError("Impossible d'accéder à la caméra.");
+          setIsScanning(false);
+        }
+      }
+    };
+
+    const stopScanner = async () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        try {
+          await html5QrCode.stop();
+          await html5QrCode.clear();
+        } catch (err) {
+          console.error("Erreur d'arrêt du scanner:", err);
+        }
+      }
+    };
 
     if (isScanning) {
-      scanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
-
-      scanner.render((decodedText) => {
-        setFormData(prev => ({ ...prev, tracking_number: decodedText }));
-        setIsScanning(false);
-        if (scanner) scanner.clear();
-      }, (err) => {
-        // Ignorer les erreurs de scan continu
-      });
+      startScanner();
     }
 
     return () => {
-      if (scanner) {
-        scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+      if (html5QrCode) {
+        stopScanner();
       }
     };
   }, [isScanning]);
@@ -263,10 +285,10 @@ export default function AddPackage() {
 
       {isScanning && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'black', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
-          <div id="reader" style={{ flex: 1 }}></div>
+          <div id="reader" style={{ width: '100%', height: '100%', flex: 1 }}></div>
           <button 
             onClick={() => setIsScanning(false)}
-            style={{ padding: '1.5rem', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold' }}
+            style={{ padding: '1.5rem', background: '#ff6600', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.1rem' }}
           >
             Fermer le scanner
           </button>
