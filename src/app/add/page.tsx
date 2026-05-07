@@ -126,7 +126,21 @@ export default function AddPackage() {
             },
             (decodedText: string) => {
               console.log("Scan réussi:", decodedText);
-              // Vibration pour retour physique
+              
+              // Retour sonore (Bip) sans fichier externe
+              try {
+                const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const oscillator = context.createOscillator();
+                const gain = context.createGain();
+                oscillator.connect(gain);
+                gain.connect(context.destination);
+                oscillator.type = "sine";
+                oscillator.frequency.value = 880;
+                oscillator.start();
+                setTimeout(() => oscillator.stop(), 100);
+              } catch (e) {}
+
+              // Vibration
               if (typeof navigator !== "undefined" && navigator.vibrate) {
                 navigator.vibrate(200);
               }
