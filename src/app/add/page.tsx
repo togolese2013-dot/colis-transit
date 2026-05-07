@@ -106,7 +106,7 @@ const AddPackage = () => {
     }
   }, []);
 
-  // SCAN PHOTO LOGIC (MULTIFORMAT)
+  // SCAN PHOTO LOGIC (SMART LOGISTICS FILTER)
   const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -114,32 +114,47 @@ const AddPackage = () => {
     setLoading(true);
     setError(null);
     
-    // Configuration pour détecter TOUS les types de codes (Barres + QR)
-    const hints = new Map();
-    const formats = [
-      BarcodeFormat.QR_CODE, 
-      BarcodeFormat.CODE_128, 
-      BarcodeFormat.CODE_39, 
-      BarcodeFormat.EAN_13,
-      BarcodeFormat.ITF
-    ];
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
-    hints.set(DecodeHintType.TRY_HARDER, true);
+    // TENTATIVE 1 : On cherche spécifiquement le format logistique (CODE 128)
+    const hintsLogistics = new Map();
+    hintsLogistics.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE]);
+    hintsLogistics.set(DecodeHintType.TRY_HARDER, true);
 
-    const codeReader = new BrowserMultiFormatReader(hints);
+    const reader = new BrowserMultiFormatReader(hintsLogistics);
     
     try {
       const imageUrl = URL.createObjectURL(file);
-      const result = await codeReader.decodeFromImageUrl(imageUrl);
+      let result = null;
+
+      try {
+        // On essaie de trouver le code de transport d'abord
+        result = await reader.decodeFromImageUrl(imageUrl);
+      } catch (e) {
+        // Si échoué, on essaie avec TOUS les formats comme roue de secours
+        console.log("Premier essai échoué, passage au mode universel...");
+        const hintsUniversal = new Map();
+        hintsUniversal.set(DecodeHintType.TRY_HARDER, true);
+        const readerUniversal = new BrowserMultiFormatReader(hintsUniversal);
+        result = await readerUniversal.decodeFromImageUrl(imageUrl);
+      }
       
       if (result) {
+        const text = result.getText();
+        
+        // Sécurité : Si le code est trop court (ex: 8-13 chiffres), c'est probablement un code produit (EAN)
+        // Les tracking numbers font généralement plus de 10-12 caractères.
+        if (text.length < 8 && !isNaN(Number(text))) {
+          setError("Ce code semble être un code produit. Essayez de cadrer uniquement le numéro de suivi plus long.");
+          setLoading(false);
+          return;
+        }
+
         playBeep();
         vibrate();
-        setFormData(prev => ({ ...prev, tracking_number: result.getText() }));
+        setFormData(prev => ({ ...prev, tracking_number: text }));
       }
     } catch (err) {
       console.error("Scan error:", err);
-      setError("Aucun code détecté. Essayez de prendre la photo de plus près et bien à plat. (Note: Les codes-barres longs doivent être bien horizontaux)");
+      setError("Désolé, le numéro de suivi n'est pas clair. Rapprochez-vous et assurez-vous que le code-barres soit bien horizontal et net.");
     } finally {
       setLoading(false);
       if (photoScanRef.current) photoScanRef.current.value = "";
@@ -303,7 +318,7 @@ const AddPackage = () => {
             </label>
           </div>
 
-          {/* SCAN PAR PHOTO (UNIVERSEL) */}
+          {/* SCAN PAR PHOTO (SMART) */}
           <button 
             type="button"
             onClick={() => photoScanRef.current?.click()}
@@ -329,7 +344,7 @@ const AddPackage = () => {
             ) : (
               <>
                 <Icons.Scan />
-                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "SCAN RÉUSSI !" : "SCANNER CODE"}</span>
+                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "SCAN RÉUSSI !" : "SCANNER TRACKING"}</span>
               </>
             )}
           </button>
@@ -344,7 +359,7 @@ const AddPackage = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">Numéro de suivi</label>
+          <label className="form-label">Numéro de suivi (Tracking)</label>
           <input 
             type="text" 
             name="tracking_number" 
