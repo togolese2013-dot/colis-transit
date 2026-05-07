@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import * as XLSX from "xlsx";
-import { BrowserQRCodeReader, DecodeHintType } from "@zxing/library";
+import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from "@zxing/library";
 
 const Icons = {
   Back: () => (
@@ -22,20 +22,14 @@ const Icons = {
   Scan: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-      <rect x="7" y="7" width="3" height="3"></rect>
-      <rect x="14" y="7" width="3" height="3"></rect>
-      <rect x="7" y="14" width="3" height="3"></rect>
-      <rect x="14" y="14" width="1" height="1"></rect>
+      <path d="M7 7h10v10H7z"></path>
+      <path d="M12 7v10"></path>
+      <path d="M7 12h10"></path>
     </svg>
   ),
   Home: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-    </svg>
-  ),
-  Box: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
     </svg>
   ),
   Plus: () => (
@@ -65,11 +59,6 @@ const Icons = {
       <line x1="16" y1="17" x2="8" y2="17"></line>
       <polyline points="10 9 9 9 8 9"></polyline>
     </svg>
-  ),
-  Flash: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-    </svg>
   )
 };
 
@@ -79,9 +68,7 @@ const AddPackage = () => {
   const [error, setError] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
   
-  const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoScanRef = useRef<HTMLInputElement>(null);
 
@@ -119,14 +106,27 @@ const AddPackage = () => {
     }
   }, []);
 
-  // SCAN PHOTO LOGIC
+  // SCAN PHOTO LOGIC (MULTIFORMAT)
   const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setLoading(true);
     setError(null);
-    const codeReader = new BrowserQRCodeReader();
+    
+    // Configuration pour détecter TOUS les types de codes (Barres + QR)
+    const hints = new Map();
+    const formats = [
+      BarcodeFormat.QR_CODE, 
+      BarcodeFormat.CODE_128, 
+      BarcodeFormat.CODE_39, 
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.ITF
+    ];
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+
+    const codeReader = new BrowserMultiFormatReader(hints);
     
     try {
       const imageUrl = URL.createObjectURL(file);
@@ -139,10 +139,9 @@ const AddPackage = () => {
       }
     } catch (err) {
       console.error("Scan error:", err);
-      setError("Désolé, aucun QR code n'a été trouvé sur cette photo. Assurez-vous qu'il soit bien net et au centre.");
+      setError("Aucun code détecté. Essayez de prendre la photo de plus près et bien à plat. (Note: Les codes-barres longs doivent être bien horizontaux)");
     } finally {
       setLoading(false);
-      // Reset input pour permettre de reprendre la même photo si besoin
       if (photoScanRef.current) photoScanRef.current.value = "";
     }
   };
@@ -304,7 +303,7 @@ const AddPackage = () => {
             </label>
           </div>
 
-          {/* SCAN PAR PHOTO (NATIF) */}
+          {/* SCAN PAR PHOTO (UNIVERSEL) */}
           <button 
             type="button"
             onClick={() => photoScanRef.current?.click()}
@@ -330,7 +329,7 @@ const AddPackage = () => {
             ) : (
               <>
                 <Icons.Scan />
-                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "SCAN RÉUSSI !" : "SCANNER QR"}</span>
+                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "SCAN RÉUSSI !" : "SCANNER CODE"}</span>
               </>
             )}
           </button>
@@ -356,11 +355,6 @@ const AddPackage = () => {
             required 
             style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--primary)', textAlign: 'center' }}
           />
-          {formData.tracking_number && (
-            <div style={{ textAlign: 'center', marginTop: '0.5rem', color: '#22c55e', fontSize: '0.85rem', fontWeight: '600' }}>
-              ✓ Code détecté avec succès
-            </div>
-          )}
         </div>
 
         <div className="form-group">
