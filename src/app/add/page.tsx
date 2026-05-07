@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -68,7 +68,7 @@ const Icons = {
   )
 };
 
-export default function AddPackage() {
+const AddPackage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +76,7 @@ export default function AddPackage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     tracking_number: "",
@@ -83,6 +84,13 @@ export default function AddPackage() {
     customer_phone: "",
     status: "RECU_CHINE",
   });
+
+  // HTTPS Force Redirect
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.protocol === "http:" && window.location.hostname !== "localhost") {
+      window.location.href = window.location.href.replace("http:", "https:");
+    }
+  }, []);
 
   useEffect(() => {
     let codeReader: BrowserMultiFormatReader | null = null;
@@ -106,11 +114,9 @@ export default function AddPackage() {
           
           const deviceId = backCamera ? backCamera.deviceId : videoInputDevices?.[0]?.deviceId;
 
-          codeReader?.decodeFromVideoDevice(deviceId, videoRef.current!, (result, err) => {
+          codeReader?.decodeFromVideoDevice(deviceId, videoRef.current!, (result) => {
             if (result) {
-              console.log("Scan réussi ZXing:", result.getText());
-              
-              // Feedback Bip
+              // Bip sonore
               try {
                 const context = new (window.AudioContext || (window as any).webkitAudioContext)();
                 const oscillator = context.createOscillator();
@@ -149,17 +155,22 @@ export default function AddPackage() {
     };
   }, [isScanning]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  }, []);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handlePhotoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPhoto(file);
+      setPreview(URL.createObjectURL(file));
+    }
+  }, []);
 
-  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExcelImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    alert(`Lecture du fichier : ${file.name}...`);
     setLoading(true);
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -222,15 +233,7 @@ export default function AddPackage() {
       }
     };
     reader.readAsArrayBuffer(file);
-  };
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhoto(file);
-      setPreview(URL.createObjectURL(file));
-    }
-  };
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -286,7 +289,6 @@ export default function AddPackage() {
               playsInline
               muted
             />
-            {/* Guide de scan visuel */}
             <div style={{ 
               position: 'absolute', 
               top: '50%', 
@@ -390,4 +392,6 @@ export default function AddPackage() {
       </nav>
     </div>
   );
-}
+};
+
+export default memo(AddPackage);

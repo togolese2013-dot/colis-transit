@@ -448,3 +448,7 @@ p { color: var(--text-muted); }
   color: var(--text-main);
   outline: none;
 }
+
+video {
+  object-fit: cover;
+}
