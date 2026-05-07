@@ -96,10 +96,8 @@ const AddPackage = () => {
     let codeReader: BrowserQRCodeReader | null = null;
 
     if (isScanning && typeof window !== "undefined") {
-      const hints = new Map();
-      hints.set(DecodeHintType.TRY_HARDER, true);
-
-      codeReader = new BrowserQRCodeReader(hints);
+      // BrowserQRCodeReader prend un délai entre les scans en millisecondes dans son constructeur, pas des hints.
+      codeReader = new BrowserQRCodeReader(250);
       
       const startScanning = async () => {
         try {
