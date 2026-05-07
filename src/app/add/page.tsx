@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import * as XLSX from "xlsx";
+import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from "@zxing/library";
 
 const Icons = {
   Back: () => (
@@ -74,6 +75,7 @@ export default function AddPackage() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [formData, setFormData] = useState({
     tracking_number: "",
@@ -83,90 +85,66 @@ export default function AddPackage() {
   });
 
   useEffect(() => {
-    let html5QrCode: any = null;
+    let codeReader: BrowserMultiFormatReader | null = null;
 
-    const startScanner = async () => {
-      if (isScanning && typeof window !== "undefined") {
-        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-        html5QrCode = new Html5Qrcode("reader");
+    if (isScanning && typeof window !== "undefined") {
+      const hints = new Map();
+      const formats = [BarcodeFormat.QR_CODE, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.EAN_13];
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+      hints.set(DecodeHintType.TRY_HARDER, true);
 
-        // Focus uniquement sur les formats logistiques les plus courants pour gagner en vitesse
-        const formatsToSupport = [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_128,
-        ];
-
-        const onScanSuccess = (decodedText: string) => {
-          // Bip sonore
-          try {
-            const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const oscillator = context.createOscillator();
-            const gain = context.createGain();
-            oscillator.connect(gain);
-            gain.connect(context.destination);
-            oscillator.type = "sine";
-            oscillator.frequency.value = 880;
-            oscillator.start();
-            setTimeout(() => oscillator.stop(), 100);
-          } catch (e) {}
-
-          // Vibration
-          if (typeof navigator !== "undefined" && navigator.vibrate) {
-            navigator.vibrate(200);
-          }
-          
-          setFormData(prev => ({ ...prev, tracking_number: decodedText }));
-          setIsScanning(false);
-        };
-
+      codeReader = new BrowserMultiFormatReader(hints);
+      
+      const startScanning = async () => {
         try {
-          await html5QrCode.start(
-            { facingMode: "environment" },
-            { 
-              fps: 60, // Fréquence ultra-haute (60 images par seconde)
-              qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                // Pas de restriction de zone pour scanner n'importe où instantanément
-                return { width: viewfinderWidth, height: viewfinderHeight };
-              },
-              formatsToSupport: formatsToSupport,
-              experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true // Utilisation de la puce IA du téléphone
-              },
-              // Suppression des contraintes de haute résolution qui saturent le processeur
-              // 640x480 est suffisant et beaucoup plus rapide à décoder par le CPU
-              videoConstraints: {
-                width: 640,
-                height: 480,
-                facingMode: "environment"
-              }
-            },
-            onScanSuccess,
-            () => {} 
+          const videoInputDevices = await codeReader?.listVideoInputDevices();
+          const backCamera = videoInputDevices?.find(device => 
+            device.label.toLowerCase().includes('back') || 
+            device.label.toLowerCase().includes('arrière') ||
+            device.label.toLowerCase().includes('environment')
           );
+          
+          const deviceId = backCamera ? backCamera.deviceId : videoInputDevices?.[0]?.deviceId;
+
+          codeReader?.decodeFromVideoDevice(deviceId, videoRef.current!, (result, err) => {
+            if (result) {
+              console.log("Scan réussi ZXing:", result.getText());
+              
+              // Feedback Bip
+              try {
+                const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const oscillator = context.createOscillator();
+                const gain = context.createGain();
+                oscillator.connect(gain);
+                gain.connect(context.destination);
+                oscillator.type = "sine";
+                oscillator.frequency.value = 880;
+                oscillator.start();
+                setTimeout(() => oscillator.stop(), 100);
+              } catch (e) {}
+
+              // Vibration
+              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(200);
+              }
+
+              setFormData(prev => ({ ...prev, tracking_number: result.getText() }));
+              setIsScanning(false);
+            }
+          });
         } catch (err) {
-          console.error("Scanner error:", err);
-          setError("Impossible de démarrer le scanner rapide.");
+          console.error("ZXing Error:", err);
+          setError("Erreur caméra : " + (err as Error).message);
           setIsScanning(false);
         }
-      }
-    };
+      };
 
-    const stopScanner = async () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        try {
-          await html5QrCode.stop();
-          await html5QrCode.clear();
-        } catch (err) {}
-      }
-    };
-
-    if (isScanning) {
-      startScanner();
+      startScanning();
     }
 
     return () => {
-      if (html5QrCode) {
-        stopScanner();
+      if (codeReader) {
+        codeReader.reset();
       }
     };
   }, [isScanning]);
@@ -236,7 +214,7 @@ export default function AddPackage() {
         if (error) throw error;
 
         alert(`${packagesToInsert.length} colis importés avec succès !`);
-        router.push("/");
+        router.push("/chine");
       } catch (error: any) {
         alert("Erreur lors de l'importation : " + error.message);
       } finally {
@@ -301,7 +279,30 @@ export default function AddPackage() {
 
       {isScanning && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'black', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
-          <div id="reader" style={{ width: '100%', height: '100%', flex: 1 }}></div>
+          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <video 
+              ref={videoRef} 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              playsInline
+              muted
+            />
+            {/* Guide de scan visuel */}
+            <div style={{ 
+              position: 'absolute', 
+              top: '50%', 
+              left: '50%', 
+              transform: 'translate(-50%, -50%)', 
+              width: '80%', 
+              height: '30%', 
+              border: '2px solid rgba(255,102,0,0.8)',
+              borderRadius: '12px',
+              boxShadow: '0 0 0 4000px rgba(0,0,0,0.5)'
+            }}>
+              <div style={{ position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', color: 'white', fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                ALIGNER LE CODE ICI
+              </div>
+            </div>
+          </div>
           <button 
             onClick={() => setIsScanning(false)}
             style={{ padding: '1.5rem', background: '#ff6600', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.2rem' }}
@@ -348,7 +349,7 @@ export default function AddPackage() {
             }}
           >
             <Icons.Scan />
-            <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>SCAN RAPIDE</span>
+            <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>SCAN ZXING</span>
           </button>
         </div>
 
@@ -358,7 +359,7 @@ export default function AddPackage() {
             type="text" 
             name="tracking_number" 
             className="form-input" 
-            placeholder="Détecté par scan..." 
+            placeholder="Attente du scan..." 
             value={formData.tracking_number} 
             onChange={handleChange} 
             required 
