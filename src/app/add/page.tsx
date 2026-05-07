@@ -108,7 +108,7 @@ const AddPackage = () => {
             device.label.toLowerCase().includes('environment')
           );
           
-          const deviceId = backCamera ? backCamera.deviceId : videoInputDevices?.[0]?.deviceId;
+          const deviceId = backCamera ? backCamera.deviceId : (videoInputDevices?.[0]?.deviceId || null);
 
           codeReader?.decodeFromVideoDevice(deviceId, videoRef.current!, (result) => {
             if (result) {
