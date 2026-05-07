@@ -87,19 +87,38 @@ export default function AddPackage() {
 
     const startScanner = async () => {
       if (isScanning && typeof window !== "undefined") {
-        const { Html5Qrcode } = await import("html5-qrcode");
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
         html5QrCode = new Html5Qrcode("reader");
         
+        const formatsToSupport = [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+        ];
+
         try {
           await html5QrCode.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
+            { 
+              fps: 20, 
+              qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                return { width: viewfinderWidth * 0.8, height: viewfinderHeight * 0.3 };
+              },
+              aspectRatio: 1.777778,
+              formatsToSupport: formatsToSupport
+            },
             (decodedText: string) => {
               setFormData(prev => ({ ...prev, tracking_number: decodedText }));
               setIsScanning(false);
               stopScanner();
             },
-            () => {} // Ignorer les échecs de lecture continue
+            () => {} 
           );
         } catch (err) {
           console.error("Erreur de démarrage du scanner:", err);
