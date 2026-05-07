@@ -65,6 +65,11 @@ const Icons = {
       <line x1="16" y1="17" x2="8" y2="17"></line>
       <polyline points="10 9 9 9 8 9"></polyline>
     </svg>
+  ),
+  Flash: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+    </svg>
   )
 };
 
@@ -75,8 +80,10 @@ const AddPackage = () => {
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoScanRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     tracking_number: "",
@@ -85,6 +92,26 @@ const AddPackage = () => {
     status: "RECU_CHINE",
   });
 
+  const playBeep = () => {
+    try {
+      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.type = "sine";
+      oscillator.frequency.value = 880;
+      oscillator.start();
+      setTimeout(() => oscillator.stop(), 100);
+    } catch (e) {}
+  };
+
+  const vibrate = () => {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(200);
+    }
+  };
+
   // HTTPS Force Redirect
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.protocol === "http:" && window.location.hostname !== "localhost") {
@@ -92,64 +119,33 @@ const AddPackage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    let codeReader: BrowserQRCodeReader | null = null;
+  // SCAN PHOTO LOGIC
+  const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (isScanning && typeof window !== "undefined") {
-      // BrowserQRCodeReader prend un délai entre les scans en millisecondes dans son constructeur, pas des hints.
-      codeReader = new BrowserQRCodeReader(250);
+    setLoading(true);
+    setError(null);
+    const codeReader = new BrowserQRCodeReader();
+    
+    try {
+      const imageUrl = URL.createObjectURL(file);
+      const result = await codeReader.decodeFromImageUrl(imageUrl);
       
-      const startScanning = async () => {
-        try {
-          const videoInputDevices = await codeReader?.listVideoInputDevices();
-          const backCamera = videoInputDevices?.find(device => 
-            device.label.toLowerCase().includes('back') || 
-            device.label.toLowerCase().includes('arrière') ||
-            device.label.toLowerCase().includes('environment')
-          );
-          
-          const deviceId = backCamera ? backCamera.deviceId : (videoInputDevices?.[0]?.deviceId || null);
-
-          codeReader?.decodeFromVideoDevice(deviceId, videoRef.current!, (result) => {
-            if (result) {
-              // Bip sonore
-              try {
-                const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-                const oscillator = context.createOscillator();
-                const gain = context.createGain();
-                oscillator.connect(gain);
-                gain.connect(context.destination);
-                oscillator.type = "sine";
-                oscillator.frequency.value = 880;
-                oscillator.start();
-                setTimeout(() => oscillator.stop(), 100);
-              } catch (e) {}
-
-              // Vibration
-              if (typeof navigator !== "undefined" && navigator.vibrate) {
-                navigator.vibrate(200);
-              }
-
-              setFormData(prev => ({ ...prev, tracking_number: result.getText() }));
-              setIsScanning(false);
-            }
-          });
-        } catch (err) {
-          console.error("ZXing Error:", err);
-          setError("Erreur caméra : " + (err as Error).message);
-          setIsScanning(false);
-        }
-      };
-
-      startScanning();
-    }
-
-    return () => {
-      if (codeReader) {
-        codeReader.reset();
+      if (result) {
+        playBeep();
+        vibrate();
+        setFormData(prev => ({ ...prev, tracking_number: result.getText() }));
       }
-    };
-  }, [isScanning]);
+    } catch (err) {
+      console.error("Scan error:", err);
+      setError("Désolé, aucun QR code n'a été trouvé sur cette photo. Assurez-vous qu'il soit bien net et au centre.");
+    } finally {
+      setLoading(false);
+      // Reset input pour permettre de reprendre la même photo si besoin
+      if (photoScanRef.current) photoScanRef.current.value = "";
+    }
+  };
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -276,45 +272,24 @@ const AddPackage = () => {
         <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls, .csv" onChange={handleExcelImport} />
       </header>
 
-      {isScanning && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'black', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <video 
-              ref={videoRef} 
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              playsInline
-              muted
-            />
-            {/* Guide de scan visuel CARRE pour QR */}
-            <div style={{ 
-              position: 'absolute', 
-              top: '50%', 
-              left: '50%', 
-              transform: 'translate(-50%, -50%)', 
-              width: '260px', 
-              height: '260px', 
-              border: '2px solid rgba(255,102,0,0.8)',
-              borderRadius: '12px',
-              boxShadow: '0 0 0 4000px rgba(0,0,0,0.5)'
-            }}>
-              <div style={{ position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', color: 'white', fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                PLACER LE QR CODE ICI
-              </div>
-            </div>
-          </div>
-          <button 
-            onClick={() => setIsScanning(false)}
-            style={{ padding: '1.5rem', background: '#ff6600', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.2rem' }}
-          >
-            ANNULER LE SCAN
-          </button>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit}>
-        {error && <div style={{ color: "red", marginBottom: "1rem" }}>{error}</div>}
+        {error && (
+          <div style={{ 
+            background: '#fff0f0', 
+            color: '#d00', 
+            padding: '1rem', 
+            borderRadius: '12px', 
+            marginBottom: '1rem',
+            fontSize: '0.9rem',
+            border: '1px solid #ffcccc',
+            lineHeight: '1.4'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
         
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+          {/* Photo du Colis */}
           <div className="package-card" style={{ flex: 1, padding: '0', overflow: 'hidden', margin: 0, height: '140px' }}>
             <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={{ display: 'none' }} id="photo-upload" />
             <label htmlFor="photo-upload" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--primary-light)' }}>
@@ -329,27 +304,44 @@ const AddPackage = () => {
             </label>
           </div>
 
+          {/* SCAN PAR PHOTO (NATIF) */}
           <button 
             type="button"
-            onClick={() => setIsScanning(true)}
+            onClick={() => photoScanRef.current?.click()}
+            disabled={loading}
             style={{ 
               flex: 1,
-              background: 'var(--surface)', 
-              border: '2px solid var(--primary)', 
+              background: 'var(--primary)', 
+              border: 'none', 
               borderRadius: 'var(--radius-lg)', 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center', 
               justifyContent: 'center',
               cursor: 'pointer',
-              color: 'var(--primary)',
+              color: 'white',
               height: '140px',
-              boxShadow: '0 4px 12px rgba(255,102,0,0.1)'
+              boxShadow: '0 4px 15px rgba(255,102,0,0.3)',
+              opacity: loading ? 0.7 : 1
             }}
           >
-            <Icons.Scan />
-            <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>SCAN QR CODE</span>
+            {loading ? (
+              <span className="loader" style={{ width: '24px', height: '24px', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }}></span>
+            ) : (
+              <>
+                <Icons.Scan />
+                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "SCAN RÉUSSI !" : "SCANNER QR"}</span>
+              </>
+            )}
           </button>
+          <input 
+            type="file" 
+            ref={photoScanRef} 
+            accept="image/*" 
+            capture="environment" 
+            style={{ display: 'none' }} 
+            onChange={handlePhotoScan} 
+          />
         </div>
 
         <div className="form-group">
@@ -358,12 +350,17 @@ const AddPackage = () => {
             type="text" 
             name="tracking_number" 
             className="form-input" 
-            placeholder="Attente du QR..." 
+            placeholder="Numéro détecté..." 
             value={formData.tracking_number} 
             onChange={handleChange} 
             required 
-            style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary)' }}
+            style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--primary)', textAlign: 'center' }}
           />
+          {formData.tracking_number && (
+            <div style={{ textAlign: 'center', marginTop: '0.5rem', color: '#22c55e', fontSize: '0.85rem', fontWeight: '600' }}>
+              ✓ Code détecté avec succès
+            </div>
+          )}
         </div>
 
         <div className="form-group">
@@ -376,8 +373,8 @@ const AddPackage = () => {
           <input type="tel" name="customer_phone" className="form-input" placeholder="Ex: +228 90 00 00 00" value={formData.customer_phone} onChange={handleChange} />
         </div>
 
-        <button type="submit" className="btn btn-primary" disabled={loading} style={{ height: '56px', fontSize: '1.1rem' }}>
-          {loading ? "Chargement..." : "Enregistrer le colis"}
+        <button type="submit" className="btn btn-primary" disabled={loading} style={{ height: '56px', fontSize: '1.1rem', marginTop: '1rem' }}>
+          {loading ? "Enregistrement..." : "Valider et Enregistrer"}
         </button>
       </form>
 
@@ -387,6 +384,12 @@ const AddPackage = () => {
         <Link href="/stats" className="nav-item"><Icons.BarChart /></Link>
         <Link href="/profile" className="nav-item"><Icons.User /></Link>
       </nav>
+
+      <style jsx>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };
