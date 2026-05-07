@@ -106,12 +106,23 @@ export default function AddPackage() {
           await html5QrCode.start(
             { facingMode: "environment" },
             { 
-              fps: 20, 
+              fps: 30, 
               qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                return { width: viewfinderWidth * 0.8, height: viewfinderHeight * 0.3 };
+                // Zone de détection très large pour les codes longs chinois
+                return { width: viewfinderWidth * 0.9, height: viewfinderHeight * 0.5 };
               },
               aspectRatio: 1.777778,
-              formatsToSupport: formatsToSupport
+              formatsToSupport: formatsToSupport,
+              // Utilise l'accélération matérielle du téléphone si disponible
+              experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true
+              },
+              // Résolution plus élevée pour les petits codes
+              videoConstraints: {
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 },
+                facingMode: "environment"
+              }
             },
             (decodedText: string) => {
               console.log("Scan réussi:", decodedText);
