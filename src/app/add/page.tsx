@@ -89,70 +89,63 @@ export default function AddPackage() {
       if (isScanning && typeof window !== "undefined") {
         const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
         html5QrCode = new Html5Qrcode("reader");
-        
+
+        // Focus uniquement sur les formats logistiques les plus courants pour gagner en vitesse
         const formatsToSupport = [
           Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.ITF,
-          Html5QrcodeSupportedFormats.DATA_MATRIX,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
         ];
+
+        const onScanSuccess = (decodedText: string) => {
+          // Bip sonore
+          try {
+            const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.type = "sine";
+            oscillator.frequency.value = 880;
+            oscillator.start();
+            setTimeout(() => oscillator.stop(), 100);
+          } catch (e) {}
+
+          // Vibration
+          if (typeof navigator !== "undefined" && navigator.vibrate) {
+            navigator.vibrate(200);
+          }
+          
+          setFormData(prev => ({ ...prev, tracking_number: decodedText }));
+          setIsScanning(false);
+        };
 
         try {
           await html5QrCode.start(
             { facingMode: "environment" },
             { 
-              fps: 30, 
+              fps: 60, // Fréquence ultra-haute (60 images par seconde)
               qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                // Zone de détection très large pour les codes longs chinois
-                return { width: viewfinderWidth * 0.9, height: viewfinderHeight * 0.5 };
+                // Pas de restriction de zone pour scanner n'importe où instantanément
+                return { width: viewfinderWidth, height: viewfinderHeight };
               },
-              aspectRatio: 1.777778,
               formatsToSupport: formatsToSupport,
-              // Utilise l'accélération matérielle du téléphone si disponible
               experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true
+                useBarCodeDetectorIfSupported: true // Utilisation de la puce IA du téléphone
               },
-              // Résolution plus élevée pour les petits codes
+              // Suppression des contraintes de haute résolution qui saturent le processeur
+              // 640x480 est suffisant et beaucoup plus rapide à décoder par le CPU
               videoConstraints: {
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
+                width: 640,
+                height: 480,
                 facingMode: "environment"
               }
             },
-            (decodedText: string) => {
-              console.log("Scan réussi:", decodedText);
-              
-              // Retour sonore (Bip) sans fichier externe
-              try {
-                const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-                const oscillator = context.createOscillator();
-                const gain = context.createGain();
-                oscillator.connect(gain);
-                gain.connect(context.destination);
-                oscillator.type = "sine";
-                oscillator.frequency.value = 880;
-                oscillator.start();
-                setTimeout(() => oscillator.stop(), 100);
-              } catch (e) {}
-
-              // Vibration
-              if (typeof navigator !== "undefined" && navigator.vibrate) {
-                navigator.vibrate(200);
-              }
-              
-              setFormData(prev => ({ ...prev, tracking_number: decodedText }));
-              setIsScanning(false);
-            },
+            onScanSuccess,
             () => {} 
           );
         } catch (err) {
-          console.error("Erreur de démarrage du scanner:", err);
-          setError("Impossible d'accéder à la caméra.");
+          console.error("Scanner error:", err);
+          setError("Impossible de démarrer le scanner rapide.");
           setIsScanning(false);
         }
       }
@@ -163,9 +156,7 @@ export default function AddPackage() {
         try {
           await html5QrCode.stop();
           await html5QrCode.clear();
-        } catch (err) {
-          console.error("Erreur d'arrêt du scanner:", err);
-        }
+        } catch (err) {}
       }
     };
 
@@ -207,19 +198,10 @@ export default function AddPackage() {
           return;
         }
 
-        // Debug: Show columns of the first row
-        const firstRow = data[0] as any;
-        const columns = Object.keys(firstRow).join(", ");
-        console.log("Colonnes détectées:", columns);
-
-        // Helper to find value by flexible key matching
         const getValue = (row: any, variants: string[]) => {
           const keys = Object.keys(row);
           for (const variant of variants) {
-            // exact match
             if (row[variant] !== undefined) return row[variant];
-            
-            // fuzzy match (case insensitive, no accents, no spaces)
             const normalizedVariant = variant.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, "");
             const foundKey = keys.find(k => {
               const normalizedKey = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, "");
@@ -230,7 +212,6 @@ export default function AddPackage() {
           return "";
         };
 
-        // Format data for Supabase with very flexible matching
         const packagesToInsert = data.map((row: any) => {
           const tracking = getValue(row, ["tracking_number", "N° Suivi", "N Suivi", "Tracking", "Code", "Suivi", "ID"]);
           const name = getValue(row, ["customer_name", "Nom", "Client", "Destinataire", "Name", "Customer"]);
@@ -246,19 +227,17 @@ export default function AddPackage() {
         }).filter(p => p.tracking_number && p.tracking_number !== "undefined" && p.tracking_number !== "");
 
         if (packagesToInsert.length === 0) {
-          alert(`Erreur : Aucun numéro de suivi trouvé.\nColonnes détectées dans votre fichier : ${columns}\n\nAssurez-vous d'avoir une colonne nommée 'Tracking' ou 'N° Suivi'.`);
+          alert(`Erreur : Aucun numéro de suivi trouvé.`);
           setLoading(false);
           return;
         }
 
         const { error } = await supabase.from("packages").insert(packagesToInsert);
-
         if (error) throw error;
 
         alert(`${packagesToInsert.length} colis importés avec succès !`);
         router.push("/");
       } catch (error: any) {
-        console.error("Erreur import Excel:", error);
         alert("Erreur lors de l'importation : " + error.message);
       } finally {
         setLoading(false);
@@ -293,7 +272,7 @@ export default function AddPackage() {
 
       const { error: insertError } = await supabase.from('packages').insert([{ ...formData, photo_url }]);
       if (insertError) throw new Error(insertError.message);
-      router.push("/");
+      router.push("/chine");
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -304,7 +283,7 @@ export default function AddPackage() {
     <div className="container" style={{ paddingBottom: '40px' }}>
       <header className="header" style={{ justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button className="back-btn" onClick={() => router.push("/")} type="button">
+          <button className="back-btn" onClick={() => router.push("/chine")} type="button">
             <Icons.Back />
           </button>
           <h1>Nouveau Colis</h1>
@@ -312,19 +291,7 @@ export default function AddPackage() {
         <button 
           type="button" 
           onClick={() => fileInputRef.current?.click()}
-          style={{ 
-            background: 'var(--surface)', 
-            border: 'none', 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: '50%', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            boxShadow: 'var(--shadow-sm)',
-            color: 'var(--primary)',
-            cursor: 'pointer'
-          }}
+          className="btn-icon"
           title="Importer Excel"
         >
           <Icons.FileText />
@@ -337,9 +304,9 @@ export default function AddPackage() {
           <div id="reader" style={{ width: '100%', height: '100%', flex: 1 }}></div>
           <button 
             onClick={() => setIsScanning(false)}
-            style={{ padding: '1.5rem', background: '#ff6600', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.1rem' }}
+            style={{ padding: '1.5rem', background: '#ff6600', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.2rem' }}
           >
-            Fermer le scanner
+            ANNULER LE SCAN
           </button>
         </div>
       )}
@@ -368,7 +335,7 @@ export default function AddPackage() {
             style={{ 
               flex: 1,
               background: 'var(--surface)', 
-              border: '1px solid var(--border)', 
+              border: '2px solid var(--primary)', 
               borderRadius: 'var(--radius-lg)', 
               display: 'flex', 
               flexDirection: 'column', 
@@ -376,27 +343,27 @@ export default function AddPackage() {
               justifyContent: 'center',
               cursor: 'pointer',
               color: 'var(--primary)',
-              height: '140px'
+              height: '140px',
+              boxShadow: '0 4px 12px rgba(255,102,0,0.1)'
             }}
           >
             <Icons.Scan />
-            <span style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontWeight: '600' }}>Scanner Code</span>
+            <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>SCAN RAPIDE</span>
           </button>
         </div>
 
         <div className="form-group">
           <label className="form-label">Numéro de suivi</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input 
-              type="text" 
-              name="tracking_number" 
-              className="form-input" 
-              placeholder="Ex: YT123456" 
-              value={formData.tracking_number} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
+          <input 
+            type="text" 
+            name="tracking_number" 
+            className="form-input" 
+            placeholder="Détecté par scan..." 
+            value={formData.tracking_number} 
+            onChange={handleChange} 
+            required 
+            style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary)' }}
+          />
         </div>
 
         <div className="form-group">
@@ -409,7 +376,7 @@ export default function AddPackage() {
           <input type="tel" name="customer_phone" className="form-input" placeholder="Ex: +228 90 00 00 00" value={formData.customer_phone} onChange={handleChange} />
         </div>
 
-        <button type="submit" className="btn btn-primary" disabled={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading} style={{ height: '56px', fontSize: '1.1rem' }}>
           {loading ? "Chargement..." : "Enregistrer le colis"}
         </button>
       </form>
