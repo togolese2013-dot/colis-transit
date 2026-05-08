@@ -1,13 +1,11 @@
 'use client'
 
-import { useState, FormEvent, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { Package, Eye, EyeOff, Lock, User } from 'lucide-react'
 
-function LoginForm() {
+export default function LoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') || '/chine'
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -31,13 +29,14 @@ function LoginForm() {
 
       if (!res.ok) {
         setError(data.error || 'Erreur de connexion')
+        setLoading(false)
         return
       }
 
-      router.push(redirect)
-    } catch {
+      router.push('/chine')
+    } catch (err) {
+      console.error(err)
       setError('Erreur réseau, veuillez réessayer')
-    } finally {
       setLoading(false)
     }
   }
@@ -45,7 +44,6 @@ function LoginForm() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        {/* Logo */}
         <div style={styles.logoWrap}>
           <div style={styles.logoIcon}>
             <Package size={28} color="#fff" />
@@ -58,7 +56,6 @@ function LoginForm() {
 
         <div style={styles.divider} />
 
-        {/* Form */}
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.field}>
             <label style={styles.label}>Nom d&apos;utilisateur</label>
@@ -96,36 +93,26 @@ function LoginForm() {
                 style={styles.eyeBtn}
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff size={16} color="var(--text-3)" /> : <Eye size={16} color="var(--text-3)" />}
+                {showPassword
+                  ? <EyeOff size={16} color="var(--text-3)" />
+                  : <Eye size={16} color="var(--text-3)" />}
               </button>
             </div>
           </div>
 
-          {error && (
-            <div style={styles.errorBox}>
-              {error}
-            </div>
-          )}
+          {error && <div style={styles.errorBox}>{error}</div>}
 
           <button
             type="submit"
             disabled={loading}
             className="btn btn-primary btn-full btn-lg"
-            style={{ marginTop: '0.5rem' }}
+            style={{ marginTop: '0.5rem', opacity: loading ? 0.7 : 1 }}
           >
-            {loading ? 'Connexion…' : 'Se connecter'}
+            {loading ? 'Connexion en cours…' : 'Se connecter'}
           </button>
         </form>
       </div>
     </div>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
   )
 }
 

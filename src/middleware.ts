@@ -3,19 +3,28 @@ import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
 const PUBLIC_PATHS = ['/', '/track', '/login']
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  const isPublic = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith('/api/auth/'))
+  const isPublic =
+    PUBLIC_PATHS.includes(pathname) ||
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/_next/') ||
+    pathname === '/favicon.ico'
+
   if (isPublic) return NextResponse.next()
 
-  const token = req.cookies.get(COOKIE_NAME)?.value
-  const session = token ? verifyToken(token) : null
+  try {
+    const token = req.cookies.get(COOKIE_NAME)?.value
+    const session = token ? await verifyToken(token) : null
 
-  if (!session) {
-    const loginUrl = req.nextUrl.clone()
-    loginUrl.pathname = '/login'
-    loginUrl.searchParams.set('redirect', pathname)
+    if (!session) {
+      const loginUrl = new URL('/login', req.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+  } catch {
+    const loginUrl = new URL('/login', req.url)
     return NextResponse.redirect(loginUrl)
   }
 
