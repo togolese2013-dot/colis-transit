@@ -108,21 +108,49 @@ export default function EditPackage() {
         </span>
       </div>
 
-      {/* Photo / placeholder */}
-      <div style={{
-        borderRadius: 'var(--r-2xl)', overflow: 'hidden',
-        border: '1.5px solid var(--border)', marginBottom: '1rem',
-        background: 'var(--bg-subtle)',
-      }}>
-        {pkg.photo_url ? (
-          <img src={pkg.photo_url} alt="Colis" style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }} />
+      {/* Photos */}
+      {(() => {
+        const photos: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0
+          ? pkg.photo_urls
+          : pkg.photo_url ? [pkg.photo_url] : [];
+        return photos.length > 0 ? (
+          <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginBottom: '1rem', paddingBottom: '0.25rem' }}>
+            {photos.map((url: string, i: number) => (
+              <div key={i} style={{
+                flexShrink: 0, borderRadius: 'var(--r-xl)', overflow: 'hidden',
+                border: '1.5px solid var(--border)', background: 'var(--bg-subtle)',
+                width: photos.length === 1 ? '100%' : '200px',
+                height: '200px',
+              }}>
+                <img
+                  src={url}
+                  alt={`Photo ${i + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  onError={e => {
+                    const el = e.currentTarget;
+                    el.style.display = 'none';
+                    const parent = el.parentElement!;
+                    parent.style.display = 'flex';
+                    parent.style.alignItems = 'center';
+                    parent.style.justifyContent = 'center';
+                    parent.innerHTML = '<span style="font-size:0.75rem;color:var(--text-3)">Image indisponible</span>';
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         ) : (
-          <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-3)' }}>
+          <div style={{
+            borderRadius: 'var(--r-2xl)', border: '1.5px solid var(--border)',
+            marginBottom: '1rem', background: 'var(--bg-subtle)',
+            height: '140px', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-3)',
+          }}>
             <Package size={36} strokeWidth={1.5} />
             <span style={{ fontSize: '0.8125rem' }}>Aucune photo</span>
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Info card */}
       <div className="card" style={{ marginBottom: '1rem' }}>
