@@ -1,37 +1,41 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Bell, Home, Truck, CheckCircle, User, Clock } from "lucide-react";
 
-interface ClaimNotif { tracking: string; name: string; phone: string | null; time: Date; }
+interface ClaimNotif { id: string; tracking: string; name: string; phone: string | null; time: Date; }
 
 export default function LomeDashboard() {
+  const router = useRouter();
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("EN_TRANSIT");
   const [notifications, setNotifications] = useState<ClaimNotif[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const packagesRef = useRef<any[]>([]);
 
   useEffect(() => {
     fetchPackages();
 
-    const lomeChannel = supabase
-      .channel('lome-updates')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'packages', filter: 'status=eq.EN_TRANSIT' }, () => { fetchPackages(); })
-      .subscribe();
-
-    const claimsChannel = supabase
-      .channel('claims')
-      .on('broadcast', { event: 'new-claim' }, ({ payload }) => {
-        setNotifications(prev => [{ tracking: payload.tracking, name: payload.name, phone: payload.phone, time: new Date() }, ...prev]);
-        setPackages(prev => prev.map(p => p.tracking_number === payload.tracking ? { ...p, customer_name: payload.name, customer_phone: payload.phone } : p));
+    const channel = supabase
+      .channel('pkg-claims-lome')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'packages' }, (payload) => {
+        const updated = payload.new as any;
+        const existing = packagesRef.current.find(p => p.id === updated.id);
+        const wasUnknown = !existing || !existing.customer_name;
+        if (wasUnknown && updated.customer_name) {
+          setNotifications(prev => [{ id: updated.id, tracking: updated.tracking_number, name: updated.customer_name, phone: updated.customer_phone || null, time: new Date() }, ...prev]);
+        }
+        packagesRef.current = packagesRef.current.map(p => p.id === updated.id ? { ...p, ...updated } : p);
+        setPackages([...packagesRef.current]);
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(lomeChannel); supabase.removeChannel(claimsChannel); };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   async function fetchPackages() {
@@ -45,6 +49,7 @@ export default function LomeDashboard() {
       console.error("Erreur Supabase:", error);
     } else {
       setPackages(data || []);
+      packagesRef.current = data || [];
     }
     setLoading(false);
   }
@@ -87,7 +92,7 @@ export default function LomeDashboard() {
           <button className="notif-btn" aria-label="Notifications" onClick={() => setNotifOpen(o => !o)}>
             <Bell size={18} />
             {notifications.length > 0 && (
-              <span style={{ fontSize: '0.6rem', minWidth: '16px', height: '16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', background: 'var(--error)', color: 'white', position: 'absolute', top: '-4px', right: '-4px', border: '2px solid white', fontWeight: '800' }}>
+              <span style={{ position: 'absolute', top: '-5px', right: '-5px', minWidth: '18px', height: '18px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: '#ef4444', color: 'white', border: '2px solid white', fontSize: '0.625rem', fontWeight: '800', lineHeight: 1 }}>
                 {notifications.length}
               </span>
             )}
@@ -95,21 +100,27 @@ export default function LomeDashboard() {
           {notifOpen && (
             <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '300px', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 100, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontWeight: '800', fontSize: '0.875rem', color: 'var(--text-1)' }}>Réclamations clients</span>
+                <span style={{ fontWeight: '800', fontSize: '0.875rem', color: 'var(--text-1)' }}>Notifications</span>
                 {notifications.length > 0 && (
                   <button onClick={() => setNotifications([])} style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--text-3)', cursor: 'pointer', fontWeight: '600' }}>Tout effacer</button>
                 )}
               </div>
               {notifications.length === 0 ? (
-                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '0.8125rem' }}>Aucune réclamation</div>
+                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '0.8125rem' }}>Aucune notification</div>
               ) : (
-                <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
                   {notifications.map((n, i) => (
-                    <div key={i} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', background: i === 0 ? 'var(--accent-subtle)' : 'var(--bg)' }}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: '700', color: 'var(--accent)', marginBottom: '0.25rem' }}>{n.tracking}</div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)' }}>{n.name}</div>
-                      {n.phone && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.125rem' }}>{n.phone}</div>}
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginTop: '0.25rem' }}>{n.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div
+                      key={i}
+                      onClick={() => { setNotifOpen(false); router.push(`/edit/${n.id}`); }}
+                      style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)', background: i === 0 ? 'var(--accent-subtle)' : 'var(--bg)', cursor: 'pointer', transition: 'background 0.1s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-subtle)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = i === 0 ? 'var(--accent-subtle)' : 'var(--bg)')}
+                    >
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-2)', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ color: 'var(--text-3)', fontWeight: '500' }}>{n.time.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} {n.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        {' · '}📦 <strong style={{ color: 'var(--text-1)' }}>{n.name}</strong> a réclamé son colis <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: '700' }}>{n.tracking}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
