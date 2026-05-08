@@ -3,7 +3,7 @@ import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
 const PUBLIC_PATHS = ['/track', '/login']
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const isPublic =
