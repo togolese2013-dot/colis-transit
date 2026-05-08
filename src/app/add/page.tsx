@@ -283,8 +283,20 @@ const AddPackage = () => {
           <input type="text" name="tracking_number" className="form-input" placeholder="Tapez ou scannez..." value={formData.tracking_number} onChange={handleChange} required style={{ fontSize: '1.3rem', fontWeight: '800', textAlign: 'center', border: '2px solid var(--primary)', borderRadius: '12px' }} />
         </div>
 
-        {/* Nouveaux Champs : Poids et Type */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+        {/* SECTION CLIENT (NOM ET TEL) AVANT POIDS */}
+        <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '16px', marginBottom: '1rem' }}>
+          <div className="form-group">
+            <label className="form-label">Nom du client</label>
+            <input type="text" name="customer_name" className="form-input" placeholder="Nom complet" value={formData.customer_name} onChange={handleChange} />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Téléphone</label>
+            <input type="tel" name="customer_phone" className="form-input" placeholder="+228..." value={formData.customer_phone} onChange={handleChange} />
+          </div>
+        </div>
+
+        {/* SECTION POIDS ET TYPE D'ENVOI */}
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
             <label className="form-label">Poids (kg)</label>
             <div style={{ position: 'relative' }}>
@@ -301,15 +313,6 @@ const AddPackage = () => {
               </select>
               <div style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}><Icons.Truck /></div>
             </div>
-          </div>
-        </div>
-
-        <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem' }}>
-          <div className="form-group">
-            <input type="text" name="customer_name" className="form-input" placeholder="Nom du client" value={formData.customer_name} onChange={handleChange} />
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <input type="tel" name="customer_phone" className="form-input" placeholder="Téléphone" value={formData.customer_phone} onChange={handleChange} />
           </div>
         </div>
 
