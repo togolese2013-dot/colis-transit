@@ -80,7 +80,14 @@ const AddPackage = () => {
     status: "RECU_CHINE",
   });
 
-  const playBeep = () => {
+  // HTTPS Force Redirect
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.protocol === "http:" && window.location.hostname !== "localhost") {
+      window.location.href = window.location.href.replace("http:", "https:");
+    }
+  }, []);
+
+  const finishScan = (text: string) => {
     try {
       const context = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = context.createOscillator();
@@ -92,22 +99,15 @@ const AddPackage = () => {
       oscillator.start();
       setTimeout(() => oscillator.stop(), 100);
     } catch (e) {}
-  };
-
-  const vibrate = () => {
+    
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate(200);
     }
+    
+    setFormData(prev => ({ ...prev, tracking_number: text }));
+    setLoading(false);
   };
 
-  // HTTPS Force Redirect
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.location.protocol === "http:" && window.location.hostname !== "localhost") {
-      window.location.href = window.location.href.replace("http:", "https:");
-    }
-  }, []);
-
-  // SCAN PHOTO LOGIC (NATIVE DETECTOR + FALLBACKS)
   const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,30 +118,24 @@ const AddPackage = () => {
     try {
       const imageUrl = URL.createObjectURL(file);
 
-      // 1. TENTATIVE NATIVE (Google/Apple Engine)
+      // 1. NATIVE DETECTOR
       if (typeof window !== "undefined" && 'BarcodeDetector' in window) {
-        console.log("Tentative avec le moteur NATIVE du téléphone...");
         try {
           const barcodeDetector = new (window as any).BarcodeDetector({
             formats: ['code_128', 'qr_code', 'ean_13', 'code_39']
           });
-          
           const img = new Image();
           img.src = imageUrl;
           await new Promise((resolve) => (img.onload = resolve));
-          
           const barcodes = await barcodeDetector.detect(img);
           if (barcodes && barcodes.length > 0) {
             finishScan(barcodes[0].rawValue);
             return;
           }
-        } catch (e) {
-          console.error("Native detector error:", e);
-        }
+        } catch (e) {}
       }
 
-      // 2. TENTATIVE QUAGGA2 (Pour Code 128)
-      console.log("Tentative avec Quagga2...");
+      // 2. QUAGGA2
       const quaggaResult = await new Promise((resolve) => {
         Quagga.decodeSingle({
           src: imageUrl,
@@ -157,8 +151,7 @@ const AddPackage = () => {
         return;
       }
 
-      // 3. TENTATIVE ZXING (Pour QR)
-      console.log("Tentative avec ZXing...");
+      // 3. ZXING
       const reader = new BrowserMultiFormatReader();
       const zxingResult = await reader.decodeFromImageUrl(imageUrl);
       if (zxingResult) {
@@ -166,22 +159,14 @@ const AddPackage = () => {
         return;
       }
 
-      throw new Error("Aucun code n'a pu être lu.");
+      throw new Error("Impossible de lire ce code. Tapez-le manuellement ou réessayez avec une photo plus nette.");
 
     } catch (err) {
-      console.error("Scan error:", err);
-      setError("Désolé, le code-barres n'est pas détecté. Essayez de bien l'éclairer et de le prendre de plus près.");
+      setError(err instanceof Error ? err.message : "Erreur de scan");
     } finally {
       setLoading(false);
       if (photoScanRef.current) photoScanRef.current.value = "";
     }
-  };
-
-  const finishScan = (text: string) => {
-    playBeep();
-    vibrate();
-    setFormData(prev => ({ ...prev, tracking_number: text }));
-    setLoading(false);
   };
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -199,67 +184,29 @@ const AddPackage = () => {
   const handleExcelImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setLoading(true);
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
         const dataBuffer = evt.target?.result;
         const wb = XLSX.read(dataBuffer, { type: "array" });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
+        const ws = wb.Sheets[wb.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(ws);
-
-        if (!data || data.length === 0) {
-          alert("Le fichier semble vide ou illisible.");
-          setLoading(false);
-          return;
-        }
-
-        const getValue = (row: any, variants: string[]) => {
-          const keys = Object.keys(row);
-          for (const variant of variants) {
-            if (row[variant] !== undefined) return row[variant];
-            const normalizedVariant = variant.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, "");
-            const foundKey = keys.find(k => {
-              const normalizedKey = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, "");
-              return normalizedKey === normalizedVariant || normalizedKey.includes(normalizedVariant);
-            });
-            if (foundKey) return row[foundKey];
-          }
-          return "";
-        };
-
-        const packagesToInsert = data.map((row: any) => {
-          const tracking = getValue(row, ["tracking_number", "N° Suivi", "N Suivi", "Tracking", "Code", "Suivi", "ID"]);
-          const name = getValue(row, ["customer_name", "Nom", "Client", "Destinataire", "Name", "Customer"]);
-          const phone = getValue(row, ["customer_phone", "Telephone", "Telefone", "Tel", "Phone", "Mobile"]);
-
-          return {
-            tracking_number: String(tracking).trim(),
-            customer_name: String(name).trim(),
-            customer_phone: String(phone).trim(),
-            status: "RECU_CHINE",
-            created_at: new Date().toISOString(),
-          };
-        }).filter(p => p.tracking_number && p.tracking_number !== "undefined" && p.tracking_number !== "");
-
-        if (packagesToInsert.length === 0) {
-          alert(`Erreur : Aucun numéro de suivi trouvé.`);
-          setLoading(false);
-          return;
-        }
+        if (!data || data.length === 0) throw new Error("Fichier vide");
+        
+        const packagesToInsert = data.map((row: any) => ({
+          tracking_number: String(row.tracking_number || row["N° Suivi"] || "").trim(),
+          customer_name: String(row.customer_name || row.Nom || "").trim(),
+          customer_phone: String(row.customer_phone || row.Telephone || "").trim(),
+          status: "RECU_CHINE",
+          created_at: new Date().toISOString(),
+        })).filter(p => p.tracking_number);
 
         const { error } = await supabase.from("packages").insert(packagesToInsert);
         if (error) throw error;
-
-        alert(`${packagesToInsert.length} colis importés avec succès !`);
+        alert(`${packagesToInsert.length} colis importés !`);
         router.push("/chine");
-      } catch (error: any) {
-        alert("Erreur lors de l'importation : " + error.message);
-      } finally {
-        setLoading(false);
-      }
+      } catch (error: any) { alert(error.message); } finally { setLoading(false); }
     };
     reader.readAsArrayBuffer(file);
   }, [router]);
@@ -267,163 +214,84 @@ const AddPackage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-
     let photo_url = null;
-
     try {
       if (photo) {
         const fileName = `${Date.now()}.${photo.name.split('.').pop()}`;
-        const { error: uploadError } = await supabase.storage.from('packages').upload(fileName, photo);
-        if (uploadError) throw new Error(uploadError.message);
-        const { data } = supabase.storage.from('packages').getPublicUrl(fileName);
-        photo_url = data.publicUrl;
+        await supabase.storage.from('packages').upload(fileName, photo);
+        photo_url = supabase.storage.from('packages').getPublicUrl(fileName).data.publicUrl;
       }
-
-      const { error: insertError } = await supabase.from('packages').insert([{ ...formData, photo_url }]);
-      if (insertError) throw new Error(insertError.message);
+      const { error } = await supabase.from('packages').insert([{ ...formData, photo_url }]);
+      if (error) throw error;
       router.push("/chine");
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-    }
+    } catch (err: any) { setError(err.message); setLoading(false); }
   };
 
   return (
-    <div className="container" style={{ paddingBottom: '40px' }}>
-      <header className="header" style={{ justifyContent: 'space-between' }}>
+    <div className="container" style={{ paddingBottom: '80px' }}>
+      <header className="header" style={{ justifyContent: 'space-between', borderBottom: '2px solid var(--primary)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button className="back-btn" onClick={() => router.push("/chine")} type="button">
-            <Icons.Back />
-          </button>
-          <h1>Nouveau Colis</h1>
+          <button className="back-btn" onClick={() => router.push("/chine")} type="button"><Icons.Back /></button>
+          <div>
+            <h1 style={{ fontSize: '1.2rem' }}>Nouveau Colis</h1>
+            <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 'bold' }}>VERSION 2.0 - SCAN PHOTO ACTIVE</span>
+          </div>
         </div>
-        <button 
-          type="button" 
-          onClick={() => fileInputRef.current?.click()}
-          className="btn-icon"
-          title="Importer Excel"
-        >
-          <Icons.FileText />
-        </button>
+        <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-icon"><Icons.FileText /></button>
         <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls, .csv" onChange={handleExcelImport} />
       </header>
 
-      <form onSubmit={handleSubmit}>
-        {error && (
-          <div style={{ 
-            background: '#fff0f0', 
-            color: '#d00', 
-            padding: '1rem', 
-            borderRadius: '12px', 
-            marginBottom: '1rem',
-            fontSize: '0.9rem',
-            border: '1px solid #ffcccc',
-            lineHeight: '1.4'
-          }}>
-            ⚠️ {error}
-          </div>
-        )}
+      <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
+        {error && <div style={{ background: '#fff0f0', color: '#d00', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontSize: '0.85rem' }}>⚠️ {error}</div>}
         
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-          {/* Photo du Colis */}
-          <div className="package-card" style={{ flex: 1, padding: '0', overflow: 'hidden', margin: 0, height: '140px' }}>
-            <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={{ display: 'none' }} id="photo-upload" />
-            <label htmlFor="photo-upload" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--primary-light)' }}>
-              {preview ? (
-                <img src={preview} alt="Aperçu" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <>
-                  <Icons.Camera />
-                  <span style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: 'var(--primary)' }}>Photo Colis</span>
-                </>
-              )}
-            </label>
-          </div>
+        <div style={{ background: 'var(--primary-light)', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px dashed var(--primary)' }}>
+          <p style={{ fontSize: '0.8rem', textAlign: 'center', marginBottom: '1rem', fontWeight: '600' }}>Étape 1 : Identifiez le colis</p>
+          
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ flex: 1, height: '120px', background: 'white', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+              <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={{ display: 'none' }} id="photo-p" />
+              <label htmlFor="photo-p" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                {preview ? <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <><Icons.Camera /><span style={{ fontSize: '0.7rem', marginTop: '0.4rem' }}>Photo Colis</span></>}
+              </label>
+            </div>
 
-          {/* SCAN PAR PHOTO (NATIVE ENGINE) */}
-          <button 
-            type="button"
-            onClick={() => photoScanRef.current?.click()}
-            disabled={loading}
-            style={{ 
-              flex: 1,
-              background: 'var(--primary)', 
-              border: 'none', 
-              borderRadius: 'var(--radius-lg)', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'white',
-              height: '140px',
-              boxShadow: '0 4px 15px rgba(255,102,0,0.3)',
-              opacity: loading ? 0.7 : 1
-            }}
-          >
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span className="loader" style={{ width: '24px', height: '24px', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }}></span>
-                <span style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>Détection...</span>
-              </div>
-            ) : (
-              <>
-                <Icons.Scan />
-                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "TERMINE !" : "SCANNER TRACKING"}</span>
-              </>
-            )}
-          </button>
-          <input 
-            type="file" 
-            ref={photoScanRef} 
-            accept="image/*" 
-            capture="environment" 
-            style={{ display: 'none' }} 
-            onChange={handlePhotoScan} 
-          />
+            <button type="button" onClick={() => photoScanRef.current?.click()} disabled={loading} style={{ flex: 1.5, background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(255,102,0,0.3)' }}>
+              {loading ? <span className="loader"></span> : <><Icons.Scan /><span style={{ marginTop: '0.5rem' }}>PRENDRE PHOTO & SCANNER</span></>}
+            </button>
+            <input type="file" ref={photoScanRef} accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhotoScan} />
+          </div>
         </div>
 
         <div className="form-group">
           <label className="form-label">Numéro de suivi (Tracking)</label>
-          <input 
-            type="text" 
-            name="tracking_number" 
-            className="form-input" 
-            placeholder="Numéro détecté..." 
-            value={formData.tracking_number} 
-            onChange={handleChange} 
-            required 
-            style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--primary)', textAlign: 'center', border: '2px solid var(--primary-light)' }}
-          />
+          <input type="text" name="tracking_number" className="form-input" placeholder="Scannez ou tapez ici..." value={formData.tracking_number} onChange={handleChange} required style={{ fontSize: '1.4rem', fontWeight: '900', color: 'var(--primary)', textAlign: 'center', padding: '1.2rem' }} />
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Client</label>
-          <input type="text" name="customer_name" className="form-input" placeholder="Nom du client" value={formData.customer_name} onChange={handleChange} />
+        <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem' }}>
+          <p style={{ fontSize: '0.8rem', marginBottom: '1rem', color: '#666', fontWeight: '600' }}>Étape 2 : Infos destinataire (Optionnel)</p>
+          <div className="form-group">
+            <input type="text" name="customer_name" className="form-input" placeholder="Nom du client" value={formData.customer_name} onChange={handleChange} />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <input type="tel" name="customer_phone" className="form-input" placeholder="Téléphone" value={formData.customer_phone} onChange={handleChange} />
+          </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Téléphone</label>
-          <input type="tel" name="customer_phone" className="form-input" placeholder="Ex: +228 90 00 00 00" value={formData.customer_phone} onChange={handleChange} />
-        </div>
-
-        <button type="submit" className="btn btn-primary" disabled={loading} style={{ height: '56px', fontSize: '1.1rem', marginTop: '1rem' }}>
-          {loading ? "Enregistrement..." : "Valider et Enregistrer"}
+        <button type="submit" className="btn btn-primary" disabled={loading} style={{ height: '60px', borderRadius: '16px', fontSize: '1.1rem' }}>
+          {loading ? "Enregistrement..." : "ENREGISTRER LE COLIS"}
         </button>
       </form>
 
       <nav className="bottom-nav">
         <Link href="/chine" className="nav-item"><Icons.Home /></Link>
-        <Link href="/add" className="nav-item active" style={{ background: 'var(--primary)', color: 'white', marginTop: '-20px', height: '56px', width: '56px', boxShadow: 'var(--shadow-lg)' }}><Icons.Plus /></Link>
+        <Link href="/add" className="nav-item active" style={{ background: 'var(--primary)', color: 'white', marginTop: '-20px', height: '56px', width: '56px' }}><Icons.Plus /></Link>
         <Link href="/stats" className="nav-item"><Icons.BarChart /></Link>
         <Link href="/profile" className="nav-item"><Icons.User /></Link>
       </nav>
 
       <style jsx>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        .loader { width: 24px; height: 24px; border: 3px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
