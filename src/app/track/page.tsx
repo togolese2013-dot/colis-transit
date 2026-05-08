@@ -36,14 +36,14 @@ const TrackContent = () => {
     try {
       const { data, error: fetchError } = await supabase
         .from("packages")
-        .select("tracking_number, status, customer_name, weight_kg, shipping_type, created_at, photo_url, photo_urls")
+        .select("id, tracking_number, status, customer_name, weight_kg, shipping_type, created_at, photo_url, photo_urls")
         .eq("tracking_number", trackingNumber.trim().toUpperCase())
         .maybeSingle();
 
       if (fetchError) {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("packages")
-          .select("tracking_number, status, customer_name, weight_kg, shipping_type, created_at, photo_url")
+          .select("id, tracking_number, status, customer_name, weight_kg, shipping_type, created_at, photo_url")
           .eq("tracking_number", trackingNumber.trim().toUpperCase())
           .maybeSingle();
 
@@ -64,7 +64,7 @@ const TrackContent = () => {
     if (searchParams.get("id")) handleTrack();
   }, []);
 
-  const calculatePrice = (pkg: any) => {
+const calculatePrice = (pkg: any) => {
     if (!pkg?.weight_kg) return null;
     const rate = pkg.shipping_type === "EXPRESS" ? 13000 : 10000;
     return pkg.weight_kg * rate;

@@ -15,6 +15,7 @@ const AddPackage = () => {
   const [previews, setPreviews] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [unknownClient, setUnknownClient] = useState(false);
 
   const multiPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,6 +94,8 @@ const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
       const { error } = await supabase.from('packages').insert([{
         ...formData,
+        customer_name: unknownClient ? null : (formData.customer_name || null),
+        customer_phone: unknownClient ? null : (formData.customer_phone || null),
         photo_url: uploadedUrls[0] || null,
         photo_urls: uploadedUrls,
         weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
@@ -100,7 +103,7 @@ const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
       if (error) throw error;
 
-      if (formData.customer_name.trim()) {
+      if (!unknownClient && formData.customer_name.trim()) {
         await supabase.from('customers').upsert(
           { name: formData.customer_name.trim(), phone: formData.customer_phone.trim() || null },
           { onConflict: 'name' }
@@ -238,6 +241,7 @@ const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               onChange={handleChange}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
               autoComplete="off"
+              disabled={unknownClient}
             />
             {showSuggestions && suggestions.length > 0 && (
               <div style={{
@@ -268,8 +272,17 @@ const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           </div>
           <div>
             <label className="form-label">Téléphone</label>
-            <input type="tel" name="customer_phone" className="form-input" placeholder="+228 XX XX XX XX" value={formData.customer_phone} onChange={handleChange} />
+            <input type="tel" name="customer_phone" className="form-input" placeholder="+228 XX XX XX XX" value={formData.customer_phone} onChange={handleChange} disabled={unknownClient} />
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={unknownClient}
+              onChange={e => setUnknownClient(e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--accent)', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-2)' }}>Client inconnu</span>
+          </label>
         </div>
 
         {/* Weight & type */}
