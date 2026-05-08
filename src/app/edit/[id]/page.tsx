@@ -91,11 +91,15 @@ export default function EditPackage() {
   const lightboxPrev = () => setLightboxIndex(i => i !== null ? (i - 1 + photoUrls.length) % photoUrls.length : null);
   const lightboxNext = () => setLightboxIndex(i => i !== null ? (i + 1) % photoUrls.length : null);
 
-  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
-  const handleTouchEnd   = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length > 1) { touchStartX.current = null; return; }
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
+    if (e.changedTouches.length > 1) { touchStartX.current = null; return; }
     const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) diff > 0 ? lightboxNext() : lightboxPrev();
+    if (Math.abs(diff) > 60) diff > 0 ? lightboxNext() : lightboxPrev();
     touchStartX.current = null;
   };
 
