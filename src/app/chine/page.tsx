@@ -141,7 +141,9 @@ export default function PackageHistory() {
     setIsUpdating(true);
     const { error } = await supabase.from('packages').delete().in('id', selectedIds);
     if (!error) {
-      setPackages(packages.filter(p => !selectedIds.includes(p.id)));
+      const remaining = packages.filter(p => !selectedIds.includes(p.id));
+      packagesRef.current = remaining;
+      setPackages(remaining);
       setSelectedIds([]);
       setIsSelectionMode(false);
     } else {
