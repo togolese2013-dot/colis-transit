@@ -420,4 +420,10 @@ const AddPackage = () => {
   );
 };
 
-export default memo(AddPackage);
+const AddPackageWithSuspense = () => (
+  <React.Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="spinner-dark spinner" /></div>}>
+    <AddPackage />
+  </React.Suspense>
+);
+
+export default memo(AddPackageWithSuspense);
