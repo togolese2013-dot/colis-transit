@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from "@zxing/library";
 import { ChevronLeft, Zap, ScanLine } from "lucide-react";
 
-const NATIVE_FORMATS = ['code_128', 'code_39', 'code_93', 'qr_code', 'data_matrix', 'itf', 'ean_13', 'ean_8', 'upc_a'];
+const NATIVE_FORMATS = ['code_128', 'code_39', 'qr_code', 'itf'];
 
 const ZXING_HINTS: Map<DecodeHintType, any> = new Map();
 ZXING_HINTS.set(DecodeHintType.POSSIBLE_FORMATS, [
-  BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93,
-  BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX, BarcodeFormat.ITF,
+  BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
+  BarcodeFormat.QR_CODE, BarcodeFormat.ITF,
 ]);
 
 export default function ScanPage() {
