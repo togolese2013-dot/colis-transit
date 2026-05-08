@@ -2,17 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from "@zxing/library";
+import { BrowserMultiFormatReader } from "@zxing/library";
 import { ChevronLeft } from "lucide-react";
-
-const HINTS: Map<DecodeHintType, any> = new Map();
-HINTS.set(DecodeHintType.POSSIBLE_FORMATS, [
-  BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93,
-  BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
-  BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX,
-  BarcodeFormat.ITF, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
-]);
-HINTS.set(DecodeHintType.TRY_HARDER, true);
 
 export default function ScanPage() {
   const router = useRouter();
@@ -23,31 +14,29 @@ export default function ScanPage() {
   const [detected, setDetected] = useState<string | null>(null);
 
   useEffect(() => {
-    // 50ms between scan attempts + limited formats = much faster
-    const reader = new BrowserMultiFormatReader(HINTS, 50);
+    const reader = new BrowserMultiFormatReader();
     readerRef.current = reader;
 
-    reader.decodeFromVideoDevice(null, videoRef.current!, (result) => {
-        if (result && !detectedRef.current) {
-          detectedRef.current = true;
-          const text = result.getText().toUpperCase();
-          setDetected(text);
-          reader.reset();
+    reader.decodeFromVideoDevice(null, videoRef.current!, (result, err) => {
+      if (result && !detectedRef.current) {
+        detectedRef.current = true;
+        const text = result.getText().toUpperCase();
+        setDetected(text);
+        reader.reset();
 
-          try {
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.type = "sine"; osc.frequency.value = 880;
-            osc.start(); setTimeout(() => osc.stop(), 120);
-          } catch {}
-          if (navigator.vibrate) navigator.vibrate(200);
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = "sine"; osc.frequency.value = 880;
+          osc.start(); setTimeout(() => osc.stop(), 120);
+        } catch {}
+        if (navigator.vibrate) navigator.vibrate(200);
 
-          setTimeout(() => router.push(`/add?tracking=${encodeURIComponent(text)}`), 350);
-        }
+        setTimeout(() => router.push(`/add?tracking=${encodeURIComponent(text)}`), 350);
       }
-    ).catch(() => setError("Impossible d'accéder à la caméra. Vérifiez les permissions."));
+    }).catch(() => setError("Impossible d'accéder à la caméra. Vérifiez les permissions."));
 
     return () => { reader.reset(); };
   }, []); // eslint-disable-line
