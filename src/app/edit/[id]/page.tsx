@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Package, MessageCircle, Home, Plus, BarChart2, User, Users } from "lucide-react";
+import { ChevronLeft, Package, MessageCircle, Home, Plus, BarChart2, User, Users, X } from "lucide-react";
 
 const getBadgeClass = (status: string) => {
   switch (status) {
@@ -39,25 +39,9 @@ export default function EditPackage() {
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes]         = useState("");
   const [isClaiming, setIsClaiming]     = useState(false);
-  const [signedUrls, setSignedUrls]     = useState<string[]>([]);
-
-  function extractPath(publicUrl: string): string {
-    // Extract path after /object/public/packages/
-    const marker = '/object/public/packages/';
-    const idx = publicUrl.indexOf(marker);
-    return idx !== -1 ? publicUrl.slice(idx + marker.length) : publicUrl;
-  }
-
-  async function generateSignedUrls(rawUrls: string[]) {
-    const results = await Promise.all(
-      rawUrls.map(async (url) => {
-        const path = extractPath(url);
-        const { data } = await supabase.storage.from('packages').createSignedUrl(path, 60 * 60 * 24);
-        return data?.signedUrl ?? null;
-      })
-    );
-    setSignedUrls(results.filter(Boolean) as string[]);
-  }
+  const [photoUrls, setPhotoUrls]         = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     async function fetchPackage() {
@@ -72,7 +56,7 @@ export default function EditPackage() {
         const rawUrls: string[] = Array.isArray(data.photo_urls) && data.photo_urls.length > 0
           ? data.photo_urls
           : data.photo_url ? [data.photo_url] : [];
-        if (rawUrls.length > 0) generateSignedUrls(rawUrls);
+        setPhotoUrls(rawUrls);
       }
       setLoading(false);
     }
@@ -104,6 +88,17 @@ export default function EditPackage() {
     setSaving(false);
   };
 
+  const lightboxPrev = () => setLightboxIndex(i => i !== null ? (i - 1 + photoUrls.length) % photoUrls.length : null);
+  const lightboxNext = () => setLightboxIndex(i => i !== null ? (i + 1) % photoUrls.length : null);
+
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd   = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) diff > 0 ? lightboxNext() : lightboxPrev();
+    touchStartX.current = null;
+  };
+
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <span className="spinner-dark spinner" />
@@ -132,16 +127,95 @@ export default function EditPackage() {
         </span>
       </div>
 
-      {/* Photos */}
-      {signedUrls.length > 0 ? (
-        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginBottom: '1rem', paddingBottom: '0.25rem' }}>
-          {signedUrls.map((url, i) => (
-            <div key={i} style={{
-              flexShrink: 0, borderRadius: 'var(--r-xl)', overflow: 'hidden',
-              border: '1.5px solid var(--border)', background: 'var(--bg-subtle)',
-              width: signedUrls.length === 1 ? '100%' : '200px',
-              height: '200px',
+      {/* Lightbox */}
+      {lightboxIndex !== null && (
+        <div
+          onClick={() => setLightboxIndex(null)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {/* Close */}
+          <button
+            onClick={() => setLightboxIndex(null)}
+            style={{
+              position: 'absolute', top: '1rem', right: '1rem',
+              background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+              width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+
+          {/* Counter */}
+          {photoUrls.length > 1 && (
+            <span style={{
+              position: 'absolute', top: '1rem', left: '50%', transform: 'translateX(-50%)',
+              color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem', fontWeight: '600',
             }}>
+              {lightboxIndex + 1} / {photoUrls.length}
+            </span>
+          )}
+
+          {/* Prev */}
+          {photoUrls.length > 1 && (
+            <button
+              onClick={e => { e.stopPropagation(); lightboxPrev(); }}
+              style={{
+                position: 'absolute', left: '0.75rem',
+                background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', cursor: 'pointer', fontSize: '1.25rem',
+              }}
+            >‹</button>
+          )}
+
+          {/* Image */}
+          <img
+            src={photoUrls[lightboxIndex]}
+            alt={`Photo ${lightboxIndex + 1}`}
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: '94vw', maxHeight: '88vh',
+              objectFit: 'contain', borderRadius: '8px',
+              userSelect: 'none',
+            }}
+          />
+
+          {/* Next */}
+          {photoUrls.length > 1 && (
+            <button
+              onClick={e => { e.stopPropagation(); lightboxNext(); }}
+              style={{
+                position: 'absolute', right: '0.75rem',
+                background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', cursor: 'pointer', fontSize: '1.25rem',
+              }}
+            >›</button>
+          )}
+        </div>
+      )}
+
+      {/* Photos */}
+      {photoUrls.length > 0 ? (
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginBottom: '1rem', paddingBottom: '0.25rem' }}>
+          {photoUrls.map((url, i) => (
+            <div
+              key={i}
+              onClick={() => setLightboxIndex(i)}
+              style={{
+                flexShrink: 0, borderRadius: 'var(--r-xl)', overflow: 'hidden',
+                border: '1.5px solid var(--border)', background: 'var(--bg-subtle)',
+                width: photoUrls.length === 1 ? '100%' : '200px',
+                height: '200px', cursor: 'pointer',
+              }}
+            >
               <img
                 src={url}
                 alt={`Photo ${i + 1}`}

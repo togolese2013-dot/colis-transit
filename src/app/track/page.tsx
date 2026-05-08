@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, ArrowRight, Package, CheckCircle, Phone, User } from "lucide-react";
+import { Search, ArrowRight, Package, CheckCircle, Phone, User, X } from "lucide-react";
 
 const STATUS_STEPS = ['RECU_CHINE', 'EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'];
 
@@ -30,6 +30,9 @@ const TrackContent = () => {
   const [claimLoading, setClaimLoading] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   const handleTrack = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -47,6 +50,7 @@ const TrackContent = () => {
         .eq("tracking_number", trackingNumber.trim().toUpperCase())
         .maybeSingle();
 
+      let resolved: any = null;
       if (fetchError) {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("packages")
@@ -55,16 +59,35 @@ const TrackContent = () => {
           .maybeSingle();
 
         if (fallbackError || !fallbackData) throw new Error("Colis non trouvé. Vérifiez le numéro.");
-        setPackageData(fallbackData);
+        resolved = fallbackData;
       } else {
         if (!data) throw new Error("Colis non trouvé.");
-        setPackageData(data);
+        resolved = data;
       }
+
+      setPackageData(resolved);
+      setLightboxIndex(null);
+
+      const rawUrls: string[] = Array.isArray(resolved.photo_urls) && resolved.photo_urls.length > 0
+        ? resolved.photo_urls
+        : resolved.photo_url ? [resolved.photo_url] : [];
+      setPhotoUrls(rawUrls);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const lightboxPrev = () => setLightboxIndex(i => i !== null ? (i - 1 + photoUrls.length) % photoUrls.length : null);
+  const lightboxNext = () => setLightboxIndex(i => i !== null ? (i + 1) % photoUrls.length : null);
+
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd   = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) diff > 0 ? lightboxNext() : lightboxPrev();
+    touchStartX.current = null;
   };
 
   const handleClaim = async (e: React.FormEvent) => {
@@ -105,24 +128,74 @@ const TrackContent = () => {
     return pkg.weight_kg * rate;
   };
 
-  const getAllPhotos = () => {
-    if (!packageData) return [];
-    const photos: string[] = [];
-    if (packageData.photo_urls && Array.isArray(packageData.photo_urls)) {
-      photos.push(...packageData.photo_urls);
-    } else if (packageData.photo_url) {
-      photos.push(packageData.photo_url);
-    }
-    return photos.filter(url => url && typeof url === 'string');
-  };
-
-  const allPhotos = getAllPhotos();
   const statusCfg = packageData ? getStatusConfig(packageData.status) : null;
   const currentStep = packageData ? STATUS_STEPS.indexOf(packageData.status) : -1;
   const fillPct = currentStep > 0 ? (currentStep / (STATUS_STEPS.length - 1)) * 100 : 0;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+
+      {/* Lightbox */}
+      {lightboxIndex !== null && (
+        <div
+          onClick={() => setLightboxIndex(null)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <button
+            onClick={() => setLightboxIndex(null)}
+            style={{
+              position: 'absolute', top: '1rem', right: '1rem',
+              background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+              width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', cursor: 'pointer',
+            }}
+          >
+            <X size={20} />
+          </button>
+          {photoUrls.length > 1 && (
+            <span style={{
+              position: 'absolute', top: '1rem', left: '50%', transform: 'translateX(-50%)',
+              color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem', fontWeight: '600',
+            }}>
+              {lightboxIndex + 1} / {photoUrls.length}
+            </span>
+          )}
+          {photoUrls.length > 1 && (
+            <button
+              onClick={e => { e.stopPropagation(); lightboxPrev(); }}
+              style={{
+                position: 'absolute', left: '0.75rem',
+                background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', cursor: 'pointer', fontSize: '1.25rem',
+              }}
+            >‹</button>
+          )}
+          <img
+            src={photoUrls[lightboxIndex]}
+            alt={`Photo ${lightboxIndex + 1}`}
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '94vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: '8px', userSelect: 'none' }}
+          />
+          {photoUrls.length > 1 && (
+            <button
+              onClick={e => { e.stopPropagation(); lightboxNext(); }}
+              style={{
+                position: 'absolute', right: '0.75rem',
+                background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', cursor: 'pointer', fontSize: '1.25rem',
+              }}
+            >›</button>
+          )}
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem' }}>
@@ -237,19 +310,22 @@ const TrackContent = () => {
             </div>
 
             {/* Photos */}
-            {allPhotos.length > 0 && (
+            {photoUrls.length > 0 && (
               <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-2xl)', padding: '1.5rem', marginBottom: '1rem' }}>
                 <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: '0.875rem' }}>
                   Photos du colis
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: allPhotos.length > 1 ? '1fr 1fr' : '1fr', gap: '0.625rem' }}>
-                  {allPhotos.map((url, index) => (
-                    <div key={index} style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-subtle)', aspectRatio: '4/3' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: photoUrls.length > 1 ? '1fr 1fr' : '1fr', gap: '0.625rem' }}>
+                  {photoUrls.map((url, index) => (
+                    <div
+                      key={index}
+                      onClick={() => setLightboxIndex(index)}
+                      style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-subtle)', aspectRatio: '4/3', cursor: 'pointer' }}
+                    >
                       <img
                         src={url}
                         alt="Colis"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        onError={(e) => (e.currentTarget.style.display = 'none')}
                       />
                     </div>
                   ))}
