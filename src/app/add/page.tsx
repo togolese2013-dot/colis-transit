@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from "@zxing/library";
+import Quagga from "@ericblade/quagga2";
 
 const Icons = {
   Back: () => (
@@ -71,7 +72,6 @@ const AddPackage = () => {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoScanRef = useRef<HTMLInputElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [formData, setFormData] = useState({
     tracking_number: "",
@@ -107,7 +107,7 @@ const AddPackage = () => {
     }
   }, []);
 
-  // SCAN PHOTO LOGIC (MULTI-STAGE DEEP ANALYSIS)
+  // SCAN PHOTO LOGIC (QUAGGA2 + ZXING HYBRID)
   const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -115,67 +115,42 @@ const AddPackage = () => {
     setLoading(true);
     setError(null);
     
-    const hints = new Map();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE, BarcodeFormat.EAN_13, BarcodeFormat.CODE_39]);
-    hints.set(DecodeHintType.TRY_HARDER, true);
-    const reader = new BrowserMultiFormatReader(hints);
-    
     try {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      await new Promise((resolve) => (img.onload = resolve));
+      const imageUrl = URL.createObjectURL(file);
 
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return;
+      // TENTATIVE 1 : QUAGGA2 (Meilleur pour les codes-barres logistiques Code 128)
+      console.log("Tentative avec Quagga2...");
+      const quaggaResult = await new Promise((resolve) => {
+        Quagga.decodeSingle({
+          src: imageUrl,
+          numOfWorkers: 0,
+          inputStream: { size: 1920 },
+          decoder: {
+            readers: ["code_128_reader", "ean_reader", "code_39_reader"]
+          },
+          locate: true
+        }, (result) => resolve(result));
+      });
 
-      const tryDecode = async (source: string) => {
-        try {
-          const result = await reader.decodeFromImageUrl(source);
-          if (result && result.getText().length > 5) return result.getText();
-        } catch (e) { return null; }
-      };
-
-      // TENTATIVE 1 : Image Originale
-      let text = await tryDecode(img.src);
-      if (text) {
-        finishScan(text);
+      if ((quaggaResult as any)?.codeResult) {
+        finishScan((quaggaResult as any).codeResult.code);
         return;
       }
 
-      // TENTATIVE 2 : Image Contrastée (Noir et Blanc)
-      console.log("Tentative 2 : Contraste Boosté...");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.filter = "contrast(250%) grayscale(100%)";
-      ctx.drawImage(img, 0, 0);
-      text = await tryDecode(canvas.toDataURL("image/jpeg", 0.9));
-      if (text) {
-        finishScan(text);
+      // TENTATIVE 2 : ZXING (Fallback pour QR Codes)
+      console.log("Tentative de secours avec ZXing...");
+      const reader = new BrowserMultiFormatReader();
+      const zxingResult = await reader.decodeFromImageUrl(imageUrl);
+      if (zxingResult) {
+        finishScan(zxingResult.getText());
         return;
       }
 
-      // TENTATIVE 3 : Zoom Central (Shipping labels focus)
-      console.log("Tentative 3 : Zoom Central...");
-      const zoomSize = Math.min(img.width, img.height) * 0.7;
-      const sx = (img.width - zoomSize) / 2;
-      const sy = (img.height - zoomSize) / 2;
-      canvas.width = 1000; // Resize pour plus de clarté
-      canvas.height = 1000;
-      ctx.filter = "contrast(200%) brightness(110%) grayscale(100%)";
-      ctx.drawImage(img, sx, sy, zoomSize, zoomSize, 0, 0, 1000, 1000);
-      text = await tryDecode(canvas.toDataURL("image/jpeg", 0.9));
-      if (text) {
-        finishScan(text);
-        return;
-      }
-
-      throw new Error("Impossible de lire ce code. Essayez de prendre la photo de plus près ou avec plus de lumière.");
+      throw new Error("Aucun code détecté.");
 
     } catch (err) {
       console.error("Scan error:", err);
-      setError("Le code n'est pas détecté. Conseil : Prenez la photo bien en face du code-barres JT315... et évitez les reflets.");
+      setError("Le code n'est pas détecté. Conseil : Assurez-vous que le code-barres soit bien net et occupe une bonne partie de la photo.");
     } finally {
       setLoading(false);
       if (photoScanRef.current) photoScanRef.current.value = "";
@@ -314,8 +289,6 @@ const AddPackage = () => {
         <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls, .csv" onChange={handleExcelImport} />
       </header>
 
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-
       <form onSubmit={handleSubmit}>
         {error && (
           <div style={{ 
@@ -348,7 +321,7 @@ const AddPackage = () => {
             </label>
           </div>
 
-          {/* SCAN PAR PHOTO (DEEP ANALYSIS) */}
+          {/* SCAN PAR PHOTO (HYBRIDE) */}
           <button 
             type="button"
             onClick={() => photoScanRef.current?.click()}
@@ -372,7 +345,7 @@ const AddPackage = () => {
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <span className="loader" style={{ width: '24px', height: '24px', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }}></span>
-                <span style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>Analyse profonde...</span>
+                <span style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>Scan puissant...</span>
               </div>
             ) : (
               <>
