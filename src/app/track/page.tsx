@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, ArrowRight, Package, CheckCircle } from "lucide-react";
+import { Search, ArrowRight, Package, CheckCircle, Phone, User } from "lucide-react";
 
 const STATUS_STEPS = ['RECU_CHINE', 'EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'];
 
@@ -25,6 +25,12 @@ const TrackContent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [claimName, setClaimName] = useState("");
+  const [claimPhone, setClaimPhone] = useState("");
+  const [claimLoading, setClaimLoading] = useState(false);
+  const [claimSuccess, setClaimSuccess] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+
   const handleTrack = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!trackingNumber.trim()) return;
@@ -32,18 +38,19 @@ const TrackContent = () => {
     setLoading(true);
     setError(null);
     setPackageData(null);
+    setClaimSuccess(false);
 
     try {
       const { data, error: fetchError } = await supabase
         .from("packages")
-        .select("id, tracking_number, status, customer_name, weight_kg, shipping_type, created_at, photo_url, photo_urls")
+        .select("id, tracking_number, status, customer_name, customer_phone, weight_kg, shipping_type, created_at, photo_url, photo_urls")
         .eq("tracking_number", trackingNumber.trim().toUpperCase())
         .maybeSingle();
 
       if (fetchError) {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("packages")
-          .select("id, tracking_number, status, customer_name, weight_kg, shipping_type, created_at, photo_url")
+          .select("id, tracking_number, status, customer_name, customer_phone, weight_kg, shipping_type, created_at, photo_url")
           .eq("tracking_number", trackingNumber.trim().toUpperCase())
           .maybeSingle();
 
@@ -60,11 +67,39 @@ const TrackContent = () => {
     }
   };
 
+  const handleClaim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!claimName.trim() || !packageData?.id) return;
+    setClaimLoading(true);
+    setClaimError(null);
+
+    try {
+      const { error } = await supabase
+        .from("packages")
+        .update({ customer_name: claimName.trim(), customer_phone: claimPhone.trim() || null })
+        .eq("id", packageData.id);
+
+      if (error) throw error;
+
+      await supabase.from("customers").upsert(
+        { name: claimName.trim(), phone: claimPhone.trim() || null },
+        { onConflict: "name" }
+      );
+
+      setPackageData((prev: any) => ({ ...prev, customer_name: claimName.trim(), customer_phone: claimPhone.trim() || null }));
+      setClaimSuccess(true);
+    } catch (err: any) {
+      setClaimError(err.message);
+    } finally {
+      setClaimLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (searchParams.get("id")) handleTrack();
   }, []);
 
-const calculatePrice = (pkg: any) => {
+  const calculatePrice = (pkg: any) => {
     if (!pkg?.weight_kg) return null;
     const rate = pkg.shipping_type === "EXPRESS" ? 13000 : 10000;
     return pkg.weight_kg * rate;
@@ -106,7 +141,6 @@ const calculatePrice = (pkg: any) => {
             Chine → Togo · Entrez votre numéro de suivi
           </p>
 
-          {/* Search form */}
           <form onSubmit={handleTrack}>
             <div style={{ display: 'flex', gap: '0.625rem' }}>
               <div style={{ flex: 1, position: 'relative' }}>
@@ -118,7 +152,7 @@ const calculatePrice = (pkg: any) => {
                   onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
                   style={{
                     width: '100%', padding: '0.875rem 1rem 0.875rem 2.75rem',
-                    fontSize: '0.9375rem', border: '1.5px solid var(--border)',
+                    fontSize: '16px', border: '1.5px solid var(--border)',
                     borderRadius: 'var(--r-xl)', outline: 'none', fontFamily: 'var(--font)',
                     background: 'white', color: 'var(--text-1)',
                     transition: 'border-color 0.15s',
@@ -149,7 +183,6 @@ const calculatePrice = (pkg: any) => {
       {/* Content */}
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '1.5rem 1.25rem' }}>
 
-        {/* Error */}
         {error && (
           <div style={{
             background: 'var(--error-subtle)', color: 'var(--error)',
@@ -161,7 +194,6 @@ const calculatePrice = (pkg: any) => {
           </div>
         )}
 
-        {/* Result */}
         {packageData && statusCfg && (
           <div className="animate-in">
 
@@ -180,7 +212,7 @@ const calculatePrice = (pkg: any) => {
 
             {/* Timeline */}
             <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-2xl)', padding: '1.5rem', marginBottom: '1rem' }}>
-              <p className="section-title" style={{ marginBottom: '1.25rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', fontWeight: '600' }}>
+              <p style={{ marginBottom: '1.25rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', fontWeight: '600' }}>
                 Progression
               </p>
               <div className="timeline-wrap">
@@ -208,7 +240,7 @@ const calculatePrice = (pkg: any) => {
             {allPhotos.length > 0 && (
               <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-2xl)', padding: '1.5rem', marginBottom: '1rem' }}>
                 <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: '0.875rem' }}>
-                  Photos
+                  Photos du colis
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: allPhotos.length > 1 ? '1fr 1fr' : '1fr', gap: '0.625rem' }}>
                   {allPhotos.map((url, index) => (
@@ -233,12 +265,9 @@ const calculatePrice = (pkg: any) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {[
                   { label: 'Client', value: packageData.customer_name || '—' },
-                  { label: 'Poids', value: packageData.weight_kg ? `${packageData.weight_kg} kg` : 'En cours de calcul' },
-                  {
-                    label: 'Service',
-                    value: packageData.shipping_type || 'ORDINAIRE',
-                    accent: packageData.shipping_type === 'EXPRESS',
-                  },
+                  { label: 'Téléphone', value: packageData.customer_phone || '—' },
+                  { label: 'Poids', value: packageData.weight_kg ? `${packageData.weight_kg} kg` : '—' },
+                  { label: 'Service', value: packageData.shipping_type === 'EXPRESS' ? 'Express 🚀' : 'Ordinaire', accent: packageData.shipping_type === 'EXPRESS' },
                 ].map((row, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>{row.label}</span>
@@ -255,6 +284,7 @@ const calculatePrice = (pkg: any) => {
               <div style={{
                 background: 'var(--accent-subtle)', border: '2px solid var(--accent-border)',
                 borderRadius: 'var(--r-2xl)', padding: '1.5rem', textAlign: 'center',
+                marginBottom: '1rem',
               }}>
                 <p style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: '0.5rem' }}>
                   Total à payer
@@ -267,10 +297,94 @@ const calculatePrice = (pkg: any) => {
                 </p>
               </div>
             )}
+
+            {/* Claim — shown only when no customer name */}
+            {!packageData.customer_name && !claimSuccess && (
+              <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-2xl)', padding: '1.5rem', marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: '0.25rem' }}>
+                  Ce colis vous appartient ?
+                </p>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)', marginBottom: '1rem' }}>
+                  Renseignez vos informations pour réclamer ce colis.
+                </p>
+                <form onSubmit={handleClaim} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ position: 'relative' }}>
+                    <User size={15} color="var(--text-3)" style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <input
+                      type="text"
+                      placeholder="Votre nom complet *"
+                      value={claimName}
+                      onChange={e => setClaimName(e.target.value)}
+                      required
+                      style={{
+                        width: '100%', padding: '0.8125rem 1rem 0.8125rem 2.5rem',
+                        fontSize: '16px', border: '1.5px solid var(--border)',
+                        borderRadius: 'var(--r-lg)', outline: 'none',
+                        fontFamily: 'var(--font)', background: 'var(--bg-subtle)',
+                        color: 'var(--text-1)', transition: 'border-color 0.15s',
+                        boxSizing: 'border-box',
+                      }}
+                      onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                    />
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={15} color="var(--text-3)" style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <input
+                      type="tel"
+                      placeholder="Votre téléphone"
+                      value={claimPhone}
+                      onChange={e => setClaimPhone(e.target.value)}
+                      style={{
+                        width: '100%', padding: '0.8125rem 1rem 0.8125rem 2.5rem',
+                        fontSize: '16px', border: '1.5px solid var(--border)',
+                        borderRadius: 'var(--r-lg)', outline: 'none',
+                        fontFamily: 'var(--font)', background: 'var(--bg-subtle)',
+                        color: 'var(--text-1)', transition: 'border-color 0.15s',
+                        boxSizing: 'border-box',
+                      }}
+                      onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                    />
+                  </div>
+                  {claimError && (
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--error)', fontWeight: '500' }}>{claimError}</p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={claimLoading || !claimName.trim()}
+                    style={{
+                      background: 'var(--accent)', color: 'white', border: 'none',
+                      borderRadius: 'var(--r-lg)', padding: '0.875rem',
+                      fontWeight: '700', fontSize: '0.9375rem', cursor: 'pointer',
+                      opacity: (claimLoading || !claimName.trim()) ? 0.6 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                    }}
+                  >
+                    {claimLoading ? <><span className="spinner" />Envoi...</> : 'Réclamer ce colis'}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {claimSuccess && (
+              <div style={{
+                background: 'var(--success-subtle)', border: '1.5px solid var(--success-border)',
+                borderRadius: 'var(--r-2xl)', padding: '1.25rem', textAlign: 'center',
+                marginBottom: '1rem',
+              }}>
+                <p style={{ fontSize: '0.9375rem', fontWeight: '700', color: 'var(--success)' }}>
+                  ✅ Colis réclamé avec succès !
+                </p>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--success)', opacity: 0.8, marginTop: '0.25rem' }}>
+                  Vos informations ont été enregistrées.
+                </p>
+              </div>
+            )}
+
           </div>
         )}
 
-        {/* Footer */}
         <p style={{ textAlign: 'center', marginTop: '3rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
           © 2026 Hamid Cargo Logistics
         </p>
