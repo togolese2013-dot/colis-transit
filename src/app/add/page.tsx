@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import * as XLSX from "xlsx";
-import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from "@zxing/library";
+import { BrowserMultiFormatReader } from "@zxing/library";
 import Quagga from "@ericblade/quagga2";
 
 const Icons = {
@@ -107,7 +107,7 @@ const AddPackage = () => {
     }
   }, []);
 
-  // SCAN PHOTO LOGIC (QUAGGA2 + ZXING HYBRID)
+  // SCAN PHOTO LOGIC (NATIVE DETECTOR + FALLBACKS)
   const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,16 +118,36 @@ const AddPackage = () => {
     try {
       const imageUrl = URL.createObjectURL(file);
 
-      // TENTATIVE 1 : QUAGGA2 (Meilleur pour les codes-barres logistiques Code 128)
+      // 1. TENTATIVE NATIVE (Google/Apple Engine)
+      if (typeof window !== "undefined" && 'BarcodeDetector' in window) {
+        console.log("Tentative avec le moteur NATIVE du téléphone...");
+        try {
+          const barcodeDetector = new (window as any).BarcodeDetector({
+            formats: ['code_128', 'qr_code', 'ean_13', 'code_39']
+          });
+          
+          const img = new Image();
+          img.src = imageUrl;
+          await new Promise((resolve) => (img.onload = resolve));
+          
+          const barcodes = await barcodeDetector.detect(img);
+          if (barcodes && barcodes.length > 0) {
+            finishScan(barcodes[0].rawValue);
+            return;
+          }
+        } catch (e) {
+          console.error("Native detector error:", e);
+        }
+      }
+
+      // 2. TENTATIVE QUAGGA2 (Pour Code 128)
       console.log("Tentative avec Quagga2...");
       const quaggaResult = await new Promise((resolve) => {
         Quagga.decodeSingle({
           src: imageUrl,
           numOfWorkers: 0,
           inputStream: { size: 1920 },
-          decoder: {
-            readers: ["code_128_reader", "ean_reader", "code_39_reader"]
-          },
+          decoder: { readers: ["code_128_reader", "ean_reader", "code_39_reader"] },
           locate: true
         }, (result) => resolve(result));
       });
@@ -137,8 +157,8 @@ const AddPackage = () => {
         return;
       }
 
-      // TENTATIVE 2 : ZXING (Fallback pour QR Codes)
-      console.log("Tentative de secours avec ZXing...");
+      // 3. TENTATIVE ZXING (Pour QR)
+      console.log("Tentative avec ZXing...");
       const reader = new BrowserMultiFormatReader();
       const zxingResult = await reader.decodeFromImageUrl(imageUrl);
       if (zxingResult) {
@@ -146,11 +166,11 @@ const AddPackage = () => {
         return;
       }
 
-      throw new Error("Aucun code détecté.");
+      throw new Error("Aucun code n'a pu être lu.");
 
     } catch (err) {
       console.error("Scan error:", err);
-      setError("Le code n'est pas détecté. Conseil : Assurez-vous que le code-barres soit bien net et occupe une bonne partie de la photo.");
+      setError("Désolé, le code-barres n'est pas détecté. Essayez de bien l'éclairer et de le prendre de plus près.");
     } finally {
       setLoading(false);
       if (photoScanRef.current) photoScanRef.current.value = "";
@@ -321,7 +341,7 @@ const AddPackage = () => {
             </label>
           </div>
 
-          {/* SCAN PAR PHOTO (HYBRIDE) */}
+          {/* SCAN PAR PHOTO (NATIVE ENGINE) */}
           <button 
             type="button"
             onClick={() => photoScanRef.current?.click()}
@@ -345,12 +365,12 @@ const AddPackage = () => {
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <span className="loader" style={{ width: '24px', height: '24px', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }}></span>
-                <span style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>Scan puissant...</span>
+                <span style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>Détection...</span>
               </div>
             ) : (
               <>
                 <Icons.Scan />
-                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "DÉTECTÉ !" : "SCANNER TRACKING"}</span>
+                <span style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '700' }}>{formData.tracking_number ? "TERMINE !" : "SCANNER TRACKING"}</span>
               </>
             )}
           </button>
