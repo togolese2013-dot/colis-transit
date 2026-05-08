@@ -2,17 +2,17 @@ import bcrypt from 'bcryptjs'
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = 'https://ghwhyuneberhotwzinwq.supabase.co'
-const SUPABASE_KEY = process.argv[4] // service_role key passé en argument
+const SUPABASE_ANON_KEY = 'sb_publishable_utNS37JHF9iqRR4zV59L0w_ADIcN1FT'
 
 const username = process.argv[2]
 const password = process.argv[3]
 
-if (!username || !password || !SUPABASE_KEY) {
-  console.error('Usage: node scripts/create-admin.mjs <username> <password> <supabase_service_role_key>')
+if (!username || !password) {
+  console.error('Usage: node scripts/create-admin.mjs <username> <password>')
   process.exit(1)
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 const hash = await bcrypt.hash(password, 12)
 
 const { error } = await supabase
