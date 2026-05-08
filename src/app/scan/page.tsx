@@ -27,10 +27,7 @@ export default function ScanPage() {
     const reader = new BrowserMultiFormatReader(HINTS, 50);
     readerRef.current = reader;
 
-    reader.decodeFromConstraints(
-      { video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 480 } } },
-      videoRef.current!,
-      (result) => {
+    reader.decodeFromVideoDevice(null, videoRef.current!, (result) => {
         if (result && !detectedRef.current) {
           detectedRef.current = true;
           const text = result.getText().toUpperCase();
