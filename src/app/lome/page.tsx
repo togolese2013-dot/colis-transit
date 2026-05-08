@@ -14,9 +14,20 @@ export default function LomeDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("EN_TRANSIT");
-  const [notifications, setNotifications] = useState<ClaimNotif[]>([]);
+  const [notifications, setNotifications] = useState<ClaimNotif[]>(() => {
+    try {
+      const saved = localStorage.getItem('lome_notifications');
+      if (!saved) return [];
+      return JSON.parse(saved).map((n: any) => ({ ...n, time: new Date(n.time) }));
+    } catch { return []; }
+  });
   const [notifOpen, setNotifOpen] = useState(false);
   const packagesRef = useRef<any[]>([]);
+
+  const saveNotifications = (notifs: ClaimNotif[]) => {
+    setNotifications(notifs);
+    try { localStorage.setItem('lome_notifications', JSON.stringify(notifs)); } catch {}
+  };
 
   useEffect(() => {
     fetchPackages();
@@ -28,7 +39,11 @@ export default function LomeDashboard() {
         const existing = packagesRef.current.find(p => p.id === updated.id);
         const wasUnknown = !existing || !existing.customer_name;
         if (wasUnknown && updated.customer_name) {
-          setNotifications(prev => [{ id: updated.id, tracking: updated.tracking_number, name: updated.customer_name, phone: updated.customer_phone || null, time: new Date() }, ...prev]);
+          setNotifications(prev => {
+            const next = [{ id: updated.id, tracking: updated.tracking_number, name: updated.customer_name, phone: updated.customer_phone || null, time: new Date() }, ...prev];
+            try { localStorage.setItem('lome_notifications', JSON.stringify(next)); } catch {}
+            return next;
+          });
         }
         packagesRef.current = packagesRef.current.map(p => p.id === updated.id ? { ...p, ...updated } : p);
         setPackages([...packagesRef.current]);
@@ -102,7 +117,7 @@ export default function LomeDashboard() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ fontWeight: '800', fontSize: '0.875rem', color: 'var(--text-1)' }}>Notifications</span>
                 {notifications.length > 0 && (
-                  <button onClick={() => setNotifications([])} style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--text-3)', cursor: 'pointer', fontWeight: '600' }}>Tout effacer</button>
+                  <button onClick={() => saveNotifications([])} style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--text-3)', cursor: 'pointer', fontWeight: '600' }}>Tout effacer</button>
                 )}
               </div>
               {notifications.length === 0 ? (
