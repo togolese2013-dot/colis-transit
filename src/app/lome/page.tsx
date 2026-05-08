@@ -5,30 +5,33 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { Search, Bell, Home, Truck, CheckCircle, User, Clock } from "lucide-react";
 
+interface ClaimNotif { tracking: string; name: string; phone: string | null; time: Date; }
+
 export default function LomeDashboard() {
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("EN_TRANSIT");
-  const [notification, setNotification] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<ClaimNotif[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
     fetchPackages();
 
-    const channel = supabase
+    const lomeChannel = supabase
       .channel('lome-updates')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'packages', filter: 'status=eq.EN_TRANSIT' },
-        (payload) => {
-          setNotification(`Nouveau colis expédié depuis la Chine · ${payload.new.tracking_number}`);
-          fetchPackages();
-          setTimeout(() => setNotification(null), 5000);
-        }
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'packages', filter: 'status=eq.EN_TRANSIT' }, () => { fetchPackages(); })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    const claimsChannel = supabase
+      .channel('claims')
+      .on('broadcast', { event: 'new-claim' }, ({ payload }) => {
+        setNotifications(prev => [{ tracking: payload.tracking, name: payload.name, phone: payload.phone, time: new Date() }, ...prev]);
+        setPackages(prev => prev.map(p => p.tracking_number === payload.tracking ? { ...p, customer_name: payload.name, customer_phone: payload.phone } : p));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(lomeChannel); supabase.removeChannel(claimsChannel); };
   }, []);
 
   async function fetchPackages() {
@@ -80,10 +83,40 @@ export default function LomeDashboard() {
             <p>Espace Livraisons</p>
           </div>
         </div>
-        <button className="notif-btn" aria-label="Notifications">
-          <Bell size={18} />
-          {notification && <span className="notif-dot" />}
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button className="notif-btn" aria-label="Notifications" onClick={() => setNotifOpen(o => !o)}>
+            <Bell size={18} />
+            {notifications.length > 0 && (
+              <span style={{ fontSize: '0.6rem', minWidth: '16px', height: '16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', background: 'var(--error)', color: 'white', position: 'absolute', top: '-4px', right: '-4px', border: '2px solid white', fontWeight: '800' }}>
+                {notifications.length}
+              </span>
+            )}
+          </button>
+          {notifOpen && (
+            <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '300px', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 100, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontWeight: '800', fontSize: '0.875rem', color: 'var(--text-1)' }}>Réclamations clients</span>
+                {notifications.length > 0 && (
+                  <button onClick={() => setNotifications([])} style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--text-3)', cursor: 'pointer', fontWeight: '600' }}>Tout effacer</button>
+                )}
+              </div>
+              {notifications.length === 0 ? (
+                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '0.8125rem' }}>Aucune réclamation</div>
+              ) : (
+                <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                  {notifications.map((n, i) => (
+                    <div key={i} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', background: i === 0 ? 'var(--accent-subtle)' : 'var(--bg)' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: '700', color: 'var(--accent)', marginBottom: '0.25rem' }}>{n.tracking}</div>
+                      <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)' }}>{n.name}</div>
+                      {n.phone && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.125rem' }}>{n.phone}</div>}
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginTop: '0.25rem' }}>{n.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats (3 tiles) */}
@@ -113,14 +146,6 @@ export default function LomeDashboard() {
           <div className="stat-lbl" style={activeFilter === 'LIVRE' ? { color: 'var(--success)', opacity: 0.8 } : {}}>Livré</div>
         </div>
       </div>
-
-      {/* Notification banner */}
-      {notification && (
-        <div className="notif-banner">
-          <Bell size={16} style={{ flexShrink: 0 }} />
-          <span>{notification}</span>
-        </div>
-      )}
 
       {/* Search */}
       <div className="search-wrap">

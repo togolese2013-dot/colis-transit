@@ -88,6 +88,19 @@ const TrackContent = () => {
 
       setPackageData((prev: any) => ({ ...prev, customer_name: claimName.trim(), customer_phone: claimPhone.trim() || null }));
       setClaimSuccess(true);
+
+      // Broadcast to admin pages
+      const ch = supabase.channel('claims');
+      ch.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await ch.send({
+            type: 'broadcast',
+            event: 'new-claim',
+            payload: { tracking: packageData.tracking_number, name: claimName.trim(), phone: claimPhone.trim() || null },
+          });
+          supabase.removeChannel(ch);
+        }
+      });
     } catch (err: any) {
       setClaimError(err.message);
     } finally {
