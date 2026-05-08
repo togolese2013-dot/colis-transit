@@ -4,6 +4,19 @@ import React, { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Search, ArrowRight, Package, CheckCircle } from "lucide-react";
+
+const STATUS_STEPS = ['RECU_CHINE', 'EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'];
+
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case "RECU_CHINE":   return { label: "Reçu en Chine",   flag: "🇨🇳", badgeClass: "badge-received" };
+    case "EN_TRANSIT":   return { label: "En Transit",       flag: "🚢", badgeClass: "badge-transit"  };
+    case "ARRIVE_LOME":  return { label: "Arrivé à Lomé",   flag: "🇹🇬", badgeClass: "badge-arrived"  };
+    case "LIVRE":        return { label: "Livré",            flag: "✅", badgeClass: "badge-delivered" };
+    default:             return { label: status || "Inconnu", flag: "",   badgeClass: "badge-delivered" };
+  }
+};
 
 const TrackContent = () => {
   const searchParams = useSearchParams();
@@ -12,40 +25,28 @@ const TrackContent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "RECU_CHINE": return { text: "Reçu en Chine 🇨🇳", color: "#f59e0b", bg: "#fef3c7" };
-      case "EN_TRANSIT": return { text: "En Transit 🚢", color: "#3b82f6", bg: "#dbeafe" };
-      case "ARRIVE_LOME": return { text: "Arrivé à Lomé 🇹🇬", color: "#10b981", bg: "#d1fae5" };
-      case "LIVRE": return { text: "Livré ✅", color: "#6b7280", bg: "#f3f4f6" };
-      default: return { text: status || "Inconnu", color: "#000", bg: "#eee" };
-    }
-  };
-
   const handleTrack = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!trackingNumber) return;
+    if (!trackingNumber.trim()) return;
 
     setLoading(true);
     setError(null);
     setPackageData(null);
 
     try {
-      // On sélectionne les colonnes une par une pour éviter les crashs si une colonne manque
       const { data, error: fetchError } = await supabase
         .from("packages")
         .select("tracking_number, status, customer_name, weight_kg, shipping_type, created_at, photo_url, photo_urls")
         .eq("tracking_number", trackingNumber.trim().toUpperCase())
-        .maybeSingle(); // maybeSingle évite l'erreur si rien n'est trouvé
+        .maybeSingle();
 
       if (fetchError) {
-        // Si photo_urls manque, on réessaie sans elle
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("packages")
           .select("tracking_number, status, customer_name, weight_kg, shipping_type, created_at, photo_url")
           .eq("tracking_number", trackingNumber.trim().toUpperCase())
           .maybeSingle();
-        
+
         if (fallbackError || !fallbackData) throw new Error("Colis non trouvé. Vérifiez le numéro.");
         setPackageData(fallbackData);
       } else {
@@ -69,10 +70,9 @@ const TrackContent = () => {
     return pkg.weight_kg * rate;
   };
 
-  // Sécurité maximale pour les photos
   const getAllPhotos = () => {
     if (!packageData) return [];
-    const photos = [];
+    const photos: string[] = [];
     if (packageData.photo_urls && Array.isArray(packageData.photo_urls)) {
       photos.push(...packageData.photo_urls);
     } else if (packageData.photo_url) {
@@ -82,106 +82,211 @@ const TrackContent = () => {
   };
 
   const allPhotos = getAllPhotos();
+  const statusCfg = packageData ? getStatusConfig(packageData.status) : null;
+  const currentStep = packageData ? STATUS_STEPS.indexOf(packageData.status) : -1;
+  const fillPct = currentStep > 0 ? (currentStep / (STATUS_STEPS.length - 1)) * 100 : 0;
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
-      <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
-        <h1 style={{ color: 'var(--primary)', fontSize: '2.2rem', fontWeight: '900' }}>Hamid Cargo</h1>
-        <p style={{ color: '#64748b', fontWeight: '500' }}>Suivi International Chine - Togo</p>
-      </header>
+    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
 
-      <form onSubmit={handleTrack} style={{ marginBottom: '2rem' }}>
-        <div style={{ position: 'relative' }}>
-          <input
-            type="text"
-            placeholder="N° de Tracking (ex: JT...)"
-            value={trackingNumber}
-            onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
-            style={{ width: '100%', padding: '20px', borderRadius: '18px', border: '2px solid #e2e8f0', fontSize: '1.2rem', outline: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}
-          />
-          <button type="submit" disabled={loading} style={{ position: 'absolute', right: '10px', top: '10px', bottom: '10px', padding: '0 25px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '14px', fontWeight: '900', cursor: 'pointer' }}>
-            {loading ? "..." : "SUIVRE"}
-          </button>
+      {/* Header */}
+      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem' }}>
+        <div style={{ maxWidth: '560px', margin: '0 auto', padding: '1.75rem 1.25rem 0' }}>
+          <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ width: '32px', height: '32px', background: 'var(--accent)', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Package size={16} color="white" strokeWidth={2.5} />
+            </div>
+            <span style={{ fontWeight: '800', fontSize: '1.0625rem', color: 'var(--text-1)', letterSpacing: '-0.01em' }}>Hamid Cargo</span>
+          </Link>
+
+          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-1)', letterSpacing: '-0.02em', marginBottom: '0.375rem' }}>
+            Suivi de colis
+          </h1>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-3)', marginBottom: '1.5rem' }}>
+            Chine → Togo · Entrez votre numéro de suivi
+          </p>
+
+          {/* Search form */}
+          <form onSubmit={handleTrack}>
+            <div style={{ display: 'flex', gap: '0.625rem' }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <Search size={17} color="var(--text-3)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <input
+                  type="text"
+                  placeholder="Ex: JT0123456789..."
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
+                  style={{
+                    width: '100%', padding: '0.875rem 1rem 0.875rem 2.75rem',
+                    fontSize: '0.9375rem', border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--r-xl)', outline: 'none', fontFamily: 'var(--font)',
+                    background: 'white', color: 'var(--text-1)',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  background: 'var(--accent)', color: 'white', border: 'none',
+                  borderRadius: 'var(--r-xl)', padding: '0 1.375rem',
+                  fontWeight: '700', fontSize: '0.875rem', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.4rem',
+                  transition: 'background 0.15s', whiteSpace: 'nowrap',
+                  opacity: loading ? 0.7 : 1,
+                }}
+              >
+                {loading ? <span className="spinner" /> : <><span>Suivre</span><ArrowRight size={15} strokeWidth={2.5} /></>}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
 
-      {error && (
-        <div style={{ background: '#fff1f2', color: '#e11d48', padding: '1.5rem', borderRadius: '20px', textAlign: 'center', border: '1px solid #fee2e2' }}>
-          {error}
-        </div>
-      )}
+      {/* Content */}
+      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '1.5rem 1.25rem' }}>
 
-      {packageData && (
-        <div style={{ background: 'white', borderRadius: '28px', boxShadow: '0 15px 35px rgba(0,0,0,0.1)', padding: '28px', border: '1px solid #f1f5f9' }}>
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <span style={{ background: getStatusLabel(packageData.status).bg, color: getStatusLabel(packageData.status).color, padding: '10px 24px', borderRadius: '24px', fontWeight: '800', fontSize: '0.9rem', textTransform: 'uppercase' }}>
-              {getStatusLabel(packageData.status).text}
-            </span>
-            <h2 style={{ marginTop: '1.2rem', fontSize: '1.7rem', fontWeight: '900', letterSpacing: '-0.5px' }}>{packageData.tracking_number}</h2>
+        {/* Error */}
+        {error && (
+          <div style={{
+            background: 'var(--error-subtle)', color: 'var(--error)',
+            padding: '1rem 1.25rem', borderRadius: 'var(--r-xl)',
+            border: '1.5px solid var(--error-border)', fontSize: '0.875rem',
+            fontWeight: '500', textAlign: 'center',
+          }}>
+            {error}
           </div>
+        )}
 
-          {/* Galerie Photos avec sécurité */}
-          {allPhotos.length > 0 && (
-            <div style={{ marginBottom: '2.5rem' }}>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '12px', fontWeight: '700' }}>PHOTOS DU COLIS</p>
-              <div style={{ display: 'grid', gridTemplateColumns: allPhotos.length > 1 ? '1fr 1fr' : '1fr', gap: '12px' }}>
-                {allPhotos.map((url, index) => (
-                  <div key={index} style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid #eee', background: '#f8fafc' }}>
-                    <img 
-                      src={url} 
-                      alt="Colis" 
-                      style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                    />
+        {/* Result */}
+        {packageData && statusCfg && (
+          <div className="animate-in">
+
+            {/* Status badge */}
+            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+              <span className={`badge ${statusCfg.badgeClass}`} style={{ fontSize: '0.8125rem', padding: '0.4rem 1rem' }}>
+                {statusCfg.flag} {statusCfg.label}
+              </span>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: '700',
+                color: 'var(--text-1)', letterSpacing: '0.03em', marginTop: '0.75rem',
+              }}>
+                {packageData.tracking_number}
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-2xl)', padding: '1.5rem', marginBottom: '1rem' }}>
+              <p className="section-title" style={{ marginBottom: '1.25rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', fontWeight: '600' }}>
+                Progression
+              </p>
+              <div className="timeline-wrap">
+                <div className="timeline-track" />
+                <div className="timeline-fill" style={{ width: `calc(${fillPct}% * (100% - 22px) / 100% + ${fillPct > 0 ? 11 : 0}px)` }} />
+                {STATUS_STEPS.map((s, i) => (
+                  <div key={s} className={`t-dot ${i < currentStep ? 'done' : i === currentStep ? 'current' : ''}`}>
+                    {i < currentStep && <CheckCircle size={11} color="white" strokeWidth={3} />}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.625rem' }}>
+                {['Chine', 'Transit', 'Lomé', 'Livré'].map((l, i) => (
+                  <span key={i} style={{
+                    fontSize: '0.6875rem', fontWeight: i <= currentStep ? '600' : '400',
+                    color: i <= currentStep ? 'var(--accent)' : 'var(--text-3)',
+                    textAlign: i === 0 ? 'left' : i === 3 ? 'right' : 'center',
+                    flex: 1,
+                  }}>{l}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Photos */}
+            {allPhotos.length > 0 && (
+              <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-2xl)', padding: '1.5rem', marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: '0.875rem' }}>
+                  Photos
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: allPhotos.length > 1 ? '1fr 1fr' : '1fr', gap: '0.625rem' }}>
+                  {allPhotos.map((url, index) => (
+                    <div key={index} style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-subtle)', aspectRatio: '4/3' }}>
+                      <img
+                        src={url}
+                        alt="Colis"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Details */}
+            <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-2xl)', padding: '1.5rem', marginBottom: '1rem' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: '0.875rem' }}>
+                Informations
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {[
+                  { label: 'Client', value: packageData.customer_name || '—' },
+                  { label: 'Poids', value: packageData.weight_kg ? `${packageData.weight_kg} kg` : 'En cours de calcul' },
+                  {
+                    label: 'Service',
+                    value: packageData.shipping_type || 'ORDINAIRE',
+                    accent: packageData.shipping_type === 'EXPRESS',
+                  },
+                ].map((row, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>{row.label}</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: '600', color: row.accent ? 'var(--error)' : 'var(--text-1)' }}>
+                      {row.value}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
-          )}
 
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '20px', marginBottom: '2rem', border: '1px solid #f1f5f9' }}>
-            <div style={{ display: 'grid', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Client</span>
-                <span style={{ fontWeight: '700' }}>{packageData.customer_name || '-'}</span>
+            {/* Price */}
+            {packageData.weight_kg && (
+              <div style={{
+                background: 'var(--accent-subtle)', border: '2px solid var(--accent-border)',
+                borderRadius: 'var(--r-2xl)', padding: '1.5rem', textAlign: 'center',
+              }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: '0.5rem' }}>
+                  Total à payer
+                </p>
+                <div style={{ fontSize: '2.25rem', fontWeight: '800', color: 'var(--accent)', letterSpacing: '-0.03em', lineHeight: 1, marginBottom: '0.375rem' }}>
+                  {calculatePrice(packageData)?.toLocaleString()} FCFA
+                </div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--accent)', opacity: 0.7 }}>
+                  {packageData.shipping_type === 'EXPRESS' ? '13 000' : '10 000'} FCFA/kg · Chine → Togo
+                </p>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Poids</span>
-                <span style={{ fontWeight: '700' }}>{packageData.weight_kg ? `${packageData.weight_kg} kg` : 'Calcul en cours'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Service</span>
-                <span style={{ fontWeight: '700', color: packageData.shipping_type === 'EXPRESS' ? '#ef4444' : '#000' }}>
-                  {packageData.shipping_type || 'ORDINAIRE'}
-                </span>
-              </div>
-            </div>
+            )}
           </div>
+        )}
 
-          {packageData.weight_kg && (
-            <div style={{ background: 'var(--primary-light)', padding: '24px', borderRadius: '20px', textAlign: 'center', border: '2px solid var(--primary)' }}>
-              <p style={{ color: 'var(--primary)', fontWeight: '800', marginBottom: '8px' }}>TOTAL À PAYER</p>
-              <h3 style={{ fontSize: '2.2rem', fontWeight: '900', color: 'var(--primary)' }}>{calculatePrice(packageData)?.toLocaleString()} FCFA</h3>
-              <p style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '8px' }}>Chine ➜ Togo</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-        <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>© 2026 Hamid Cargo Logistics — Chine & Togo</p>
+        {/* Footer */}
+        <p style={{ textAlign: 'center', marginTop: '3rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
+          © 2026 Hamid Cargo Logistics
+        </p>
       </div>
-
-      <style jsx global>{`
-        :root { --primary: #FF6600; --primary-light: #FFF5F0; }
-        body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
-      `}</style>
     </div>
   );
 };
 
 const TrackPage = () => (
-  <Suspense fallback={<div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>}><TrackContent /></Suspense>
+  <Suspense fallback={
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span className="spinner-dark spinner" />
+    </div>
+  }>
+    <TrackContent />
+  </Suspense>
 );
 
 export default TrackPage;

@@ -3,104 +3,26 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { Search, Bell, Plus, BarChart2, User, Trash2, Send, Home, Upload, SlidersHorizontal, Users, X } from "lucide-react";
 
-const Icons = {
-  Back: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-  ),
-  Search: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-    </svg>
-  ),
-  Filter: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="10" cy="8" r="1"></circle>
-      <line x1="4" y1="8" x2="9" y2="8"></line>
-      <line x1="11" y1="8" x2="20" y2="8"></line>
-      <circle cx="14" cy="16" r="1"></circle>
-      <line x1="4" y1="16" x2="13" y2="16"></line>
-      <line x1="15" y1="16" x2="20" y2="16"></line>
-    </svg>
-  ),
-  ArrowUpRight: () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="7" y1="17" x2="17" y2="7"></line>
-      <polyline points="7 7 17 7 17 17"></polyline>
-    </svg>
-  ),
-  Drone: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-      <circle cx="12" cy="12" r="4" />
-    </svg>
-  ),
-  Check: () => (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12"></polyline>
-    </svg>
-  ),
-  Home: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-      <polyline points="9 22 9 12 15 12 15 22"></polyline>
-    </svg>
-  ),
-  Box: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-      <line x1="12" y1="22.08" x2="12" y2="12"></line>
-    </svg>
-  ),
-  Plus: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-  ),
-  BarChart: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="20" x2="12" y2="10"></line>
-      <line x1="18" y1="20" x2="18" y2="4"></line>
-      <line x1="6" y1="20" x2="6" y2="16"></line>
-    </svg>
-  ),
-  Map: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-      <line x1="8" y1="2" x2="8" y2="18"></line>
-      <line x1="16" y1="6" x2="16" y2="22"></line>
-    </svg>
-  ),
-  User: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-      <circle cx="12" cy="7" r="4"></circle>
-    </svg>
-  ),
-  Bell: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-    </svg>
-  ),
-  Plane: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5s-2.5 0-4 1.5L13.5 8.5l-8.2-1.8c-.9-.2-1.8.1-2.4.7l-.5.5c-.4.4-.5 1-.2 1.4l7.2 3.6-3.6 7.2c-.4.4-.3 1 .1 1.4l.5.5c.6.6 1.5.9 2.4.7l8.2-1.8 3.5 3.5c1.5 1.5 3.5 1 4-.5s-.5-2.5-2-4l-3.5-3.5z"></path>
-    </svg>
-  ),
-  Trash: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6"></polyline>
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-      <line x1="10" y1="11" x2="10" y2="17"></line>
-      <line x1="14" y1="11" x2="14" y2="17"></line>
-    </svg>
-  )
+const getBadgeClass = (status: string) => {
+  switch (status) {
+    case 'RECU_CHINE':  return 'badge-received';
+    case 'EN_TRANSIT':  return 'badge-transit';
+    case 'ARRIVE_LOME': return 'badge-arrived';
+    case 'LIVRE':       return 'badge-delivered';
+    default:            return 'badge-delivered';
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'RECU_CHINE':  return 'Reçu Chine';
+    case 'EN_TRANSIT':  return 'En Transit';
+    case 'ARRIVE_LOME': return 'Arrivé Lomé';
+    case 'LIVRE':       return 'Livré';
+    default:            return status;
+  }
 };
 
 export default function PackageHistory() {
@@ -112,6 +34,11 @@ export default function PackageHistory() {
   const [bulkStatus, setBulkStatus] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [filterDateRange, setFilterDateRange] = useState<string>('all');
+  const [filterShipping, setFilterShipping] = useState<string>('');
+  const [filterWeightMin, setFilterWeightMin] = useState<string>('');
+  const [filterWeightMax, setFilterWeightMax] = useState<string>('');
 
   useEffect(() => {
     async function fetchPackages() {
@@ -119,7 +46,6 @@ export default function PackageHistory() {
         .from('packages')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (!error) setPackages(data || []);
       setLoading(false);
     }
@@ -127,20 +53,31 @@ export default function PackageHistory() {
   }, []);
 
   const filteredPackages = packages.filter(pkg => {
-    const matchesSearch = pkg.tracking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (pkg.item_name && pkg.item_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                         (pkg.customer_name && pkg.customer_name.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    if (activeFilter) {
-      return matchesSearch && pkg.status === activeFilter;
+    const matchesSearch =
+      pkg.tracking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (pkg.item_name && pkg.item_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (pkg.customer_name && pkg.customer_name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (!matchesSearch) return false;
+    if (activeFilter && pkg.status !== activeFilter) return false;
+    if (filterShipping && pkg.shipping_type !== filterShipping) return false;
+    if (filterWeightMin && !(pkg.weight_kg >= parseFloat(filterWeightMin))) return false;
+    if (filterWeightMax && !(pkg.weight_kg <= parseFloat(filterWeightMax))) return false;
+    if (filterDateRange !== 'all') {
+      const created = new Date(pkg.created_at);
+      const now = new Date();
+      if (filterDateRange === 'today' && created.toDateString() !== now.toDateString()) return false;
+      if (filterDateRange === '7d' && (now.getTime() - created.getTime()) > 7 * 86400000) return false;
+      if (filterDateRange === '30d' && (now.getTime() - created.getTime()) > 30 * 86400000) return false;
     }
-    return matchesSearch;
+    return true;
   });
 
-  const receivedCount = packages.filter(p => p.status === 'RECU_CHINE').length;
+  const hasAdvancedFilters = filterDateRange !== 'all' || filterShipping !== '' || filterWeightMin !== '' || filterWeightMax !== '';
+
+  const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); };
+
+  const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE').length;
   const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT').length;
-  const arrivedCount = packages.filter(p => p.status === 'ARRIVE_LOME').length;
-  const deliveredCount = packages.filter(p => p.status === 'LIVRE').length;
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -160,18 +97,15 @@ export default function PackageHistory() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${selectedIds.length} colis ?`)) return;
-    
+    if (!confirm(`Supprimer ${selectedIds.length} colis ?`)) return;
     setIsUpdating(true);
     const { error } = await supabase.from('packages').delete().in('id', selectedIds);
-    
     if (!error) {
       setPackages(packages.filter(p => !selectedIds.includes(p.id)));
       setSelectedIds([]);
       setIsSelectionMode(false);
-      alert("Colis supprimés avec succès.");
     } else {
-      alert("Erreur lors de la suppression : " + error.message);
+      alert("Erreur : " + error.message);
     }
     setIsUpdating(false);
   };
@@ -180,214 +114,251 @@ export default function PackageHistory() {
     e.preventDefault();
     e.stopPropagation();
     const { error } = await supabase.from('packages').update({ status: 'EN_TRANSIT' }).eq('id', id);
-    if (!error) {
-      setPackages(packages.map(p => p.id === id ? { ...p, status: 'EN_TRANSIT' } : p));
-    }
+    if (!error) setPackages(packages.map(p => p.id === id ? { ...p, status: 'EN_TRANSIT' } : p));
+  };
+
+  const toggleFilter = (filter: string) => {
+    setActiveFilter(prev => prev === filter ? null : filter);
   };
 
   return (
-    <div className="container" style={{ paddingBottom: '120px' }}>
-      <header className="header">
+    <div className="container" style={{ paddingTop: '0.25rem', paddingBottom: '120px' }}>
+
+      {/* Header */}
+      <div className="page-header">
         <div className="header-user">
-          <div className="avatar-square"></div>
+          <div className="avatar">
+            <span style={{ fontSize: '0.9375rem' }}>JC</span>
+          </div>
           <div className="user-info">
             <h2>James Carter</h2>
-            <p>Bienvenue,</p>
+            <p>Guangzhou Warehouse</p>
           </div>
         </div>
-        <div className="notif-badge">
-          <Icons.Bell />
-          <div className="notif-dot"></div>
-        </div>
-      </header>
+        <button className="notif-btn" aria-label="Notifications">
+          <Bell size={18} />
+          <span className="notif-dot" />
+        </button>
+      </div>
 
-      <div className="search-container">
-        <div className="search-input-wrapper">
-          <span className="search-icon"><Icons.Search /></span>
-          <input 
-            type="text" 
-            className="search-input" 
-            placeholder="Search..." 
+      {/* Stats */}
+      <div className="stats-row">
+        <div
+          className="stat-tile accent-fill"
+          onClick={() => toggleFilter('RECU_CHINE')}
+          style={activeFilter === 'RECU_CHINE' ? { outline: '3px solid rgba(249,115,22,0.4)', outlineOffset: '2px' } : {}}
+        >
+          <div className="stat-num" style={{ color: 'white' }}>{loading ? '—' : receivedCount}</div>
+          <div className="stat-lbl" style={{ color: 'rgba(255,255,255,0.75)' }}>Reçu en Chine</div>
+        </div>
+        <div
+          className={`stat-tile ${activeFilter === 'EN_TRANSIT' ? 'is-active-blue' : ''}`}
+          onClick={() => toggleFilter('EN_TRANSIT')}
+        >
+          <div className="stat-num">{loading ? '—' : inTransitCount}</div>
+          <div className="stat-lbl">En Transit</div>
+        </div>
+      </div>
+
+      {/* Search + filter */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.875rem' }}>
+        <div className="search-wrap" style={{ flex: 1, marginBottom: 0 }}>
+          <span className="search-ico"><Search size={16} /></span>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Rechercher..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <button className="filter-btn"><Icons.Filter /></button>
+        <button
+          className={`filter-chip ${hasAdvancedFilters ? 'active' : ''}`}
+          onClick={() => setFilterDrawerOpen(true)}
+          style={{ flexShrink: 0, position: 'relative' }}
+        >
+          <SlidersHorizontal size={14} />
+          Filtres
+          {hasAdvancedFilters && <span style={{ position: 'absolute', top: '-3px', right: '-3px', width: '8px', height: '8px', background: 'var(--accent)', borderRadius: '50%', border: '2px solid white' }} />}
+        </button>
       </div>
 
-      <div className="stats-grid">
-        <div 
-          className={`stat-card primary ${activeFilter === 'RECU_CHINE' ? 'active' : ''}`} 
-          onClick={() => setActiveFilter(activeFilter === 'RECU_CHINE' ? null : 'RECU_CHINE')}
-          style={{ cursor: 'pointer', border: activeFilter === 'RECU_CHINE' ? '2px solid var(--primary)' : 'none' }}
-        >
-          <div className="stat-number">{loading ? '--' : receivedCount}</div>
-          <div className="stat-label">Colis reçu</div>
-          <div className="stat-arrow"><Icons.ArrowUpRight /></div>
-        </div>
-        <div 
-          className={`stat-card ${activeFilter === 'EN_TRANSIT' ? 'active' : ''}`}
-          onClick={() => setActiveFilter(activeFilter === 'EN_TRANSIT' ? null : 'EN_TRANSIT')}
-          style={{ cursor: 'pointer', border: activeFilter === 'EN_TRANSIT' ? '2px solid var(--primary)' : 'none' }}
-        >
-          <div className="stat-number">{loading ? '--' : inTransitCount}</div>
-          <div className="stat-label">En Transit</div>
-          <div className="stat-arrow"><Icons.ArrowUpRight /></div>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Colis enregistrés</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      {/* Section header */}
+      <div className="section-label">
+        <span className="section-title">
+          Colis enregistrés
+          {filteredPackages.length > 0 && (
+            <span style={{ marginLeft: '0.5rem', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', padding: '0.1rem 0.5rem', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-3)' }}>
+              {filteredPackages.length}
+            </span>
+          )}
+        </span>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {isSelectionMode && selectedIds.length > 0 && (
-            <button 
+            <button
+              className="btn btn-danger btn-sm"
               onClick={handleBulkDelete}
-              style={{ 
-                background: '#fee2e2', 
-                color: '#ef4444',
-                border: 'none',
-                padding: '0.4rem 0.8rem',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.75rem',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
+              disabled={isUpdating}
             >
-              <Icons.Trash />
-              Supprimer ({selectedIds.length})
+              <Trash2 size={13} />
+              {selectedIds.length}
             </button>
           )}
-          <button 
+          {!isSelectionMode && (
+            <Link href="/import" style={{ textDecoration: 'none' }}>
+              <button className="btn btn-secondary btn-sm" type="button">
+                <Upload size={13} /> Import
+              </button>
+            </Link>
+          )}
+          <button
+            className={`btn btn-sm ${isSelectionMode ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => { setIsSelectionMode(!isSelectionMode); setSelectedIds([]); }}
-            style={{ 
-              background: isSelectionMode ? 'var(--primary)' : 'transparent', 
-              color: isSelectionMode ? 'white' : 'var(--primary)',
-              border: isSelectionMode ? 'none' : '1px solid var(--primary)',
-              padding: '0.4rem 0.8rem',
-              borderRadius: 'var(--radius-full)',
-              fontSize: '0.75rem',
-              fontWeight: '700',
-              cursor: 'pointer'
-            }}
           >
             {isSelectionMode ? 'Annuler' : 'Sélectionner'}
           </button>
         </div>
       </div>
 
+      {/* Package list */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>Chargement...</div>
+        <div className="loading-state">Chargement...</div>
       ) : filteredPackages.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-          {searchQuery ? "Aucun résultat." : "Aucun colis."}
+        <div className="empty-state">
+          <div className="empty-title">Aucun colis</div>
+          <div className="empty-text">{searchQuery ? 'Aucun résultat pour cette recherche.' : 'Commencez par ajouter un colis.'}</div>
         </div>
       ) : (
         filteredPackages.map((pkg) => (
-          <div key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+          <div key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             {isSelectionMode && (
-              <input 
-                type="checkbox" 
-                checked={selectedIds.includes(pkg.id)} 
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(pkg.id)}
                 onChange={() => toggleSelection(pkg.id)}
-                style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--accent)', flexShrink: 0 }}
               />
             )}
-            <div style={{ flex: 1 }}>
-              <Link href={isSelectionMode ? '#' : `/edit/${pkg.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="package-card" style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  padding: '1.25rem',
-                  border: selectedIds.includes(pkg.id) ? '2px solid var(--primary)' : 'none',
-                  margin: 0
-                }}>
-                  <div className="package-info">
-                    <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-main)' }}>{pkg.tracking_number}</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem' }}>
-                      <span>{pkg.customer_name || 'Sans nom'}</span>
-                      {pkg.customer_phone && <span style={{ opacity: 0.7 }}>• {pkg.customer_phone}</span>}
-                    </div>
+            <Link
+              href={isSelectionMode ? '#' : `/edit/${pkg.id}`}
+              style={{ textDecoration: 'none', color: 'inherit', flex: 1 }}
+              onClick={isSelectionMode ? (e) => { e.preventDefault(); toggleSelection(pkg.id); } : undefined}
+            >
+              <div className={`pkg-item ${selectedIds.includes(pkg.id) ? 'is-selected' : ''}`}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="pkg-number">{pkg.tracking_number}</div>
+                  <div className="pkg-meta">
+                    {pkg.customer_name || 'Sans nom'}
+                    {pkg.customer_phone && ` · ${pkg.customer_phone}`}
                   </div>
-                  
-                  {pkg.status === 'RECU_CHINE' ? (
-                    <button 
+                </div>
+                {!isSelectionMode && (
+                  pkg.status === 'RECU_CHINE' ? (
+                    <button
+                      className="btn btn-primary btn-sm"
                       onClick={(e) => handleSendInTransit(e, pkg.id)}
-                      style={{
-                        background: 'var(--primary)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.5rem 0.75rem',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: '0.75rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        boxShadow: 'var(--shadow-sm)'
-                      }}
+                      style={{ flexShrink: 0 }}
                     >
-                      Envoyer en Transit
+                      <Send size={12} />
+                      Transit
                     </button>
                   ) : (
-                    <div className="package-badge">{pkg.status.replace('_', ' ')}</div>
-                  )}
-                </div>
-              </Link>
-            </div>
+                    <span className={`badge ${getBadgeClass(pkg.status)}`} style={{ flexShrink: 0 }}>
+                      {getStatusLabel(pkg.status)}
+                    </span>
+                  )
+                )}
+              </div>
+            </Link>
           </div>
         ))
       )}
 
+      {/* Bulk action bar */}
       {isSelectionMode && selectedIds.length > 0 && (
-        <div style={{ 
-          position: 'fixed', 
-          bottom: '100px', 
-          left: '50%', 
-          transform: 'translateX(-50%)', 
-          width: 'calc(100% - 3rem)', 
-          maxWidth: '400px',
-          background: 'var(--surface)',
-          padding: '1rem',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 -10px 40px rgba(0,0,0,0.1)',
-          zIndex: 101,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem'
-        }}>
-          <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>{selectedIds.length} colis sélectionnés</div>
+        <div className="bulk-bar">
+          <div className="bulk-bar-title">{selectedIds.length} colis sélectionné{selectedIds.length > 1 ? 's' : ''}</div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <select 
-              className="form-input" 
-              style={{ flex: 1, padding: '0.5rem' }} 
-              value={bulkStatus} 
+            <select
+              className="form-input form-select"
+              style={{ flex: 1, padding: '0.625rem 2.5rem 0.625rem 0.875rem', fontSize: '0.875rem' }}
+              value={bulkStatus}
               onChange={(e) => setBulkStatus(e.target.value)}
             >
-              <option value="">Changer statut...</option>
+              <option value="">Changer le statut...</option>
               <option value="RECU_CHINE">Reçu en Chine</option>
               <option value="EN_TRANSIT">En Transit</option>
               <option value="ARRIVE_LOME">Arrivé à Lomé</option>
               <option value="LIVRE">Livré</option>
             </select>
-            <button 
-              className="btn btn-primary" 
-              style={{ padding: '0.5rem 1rem', width: 'auto' }}
+            <button
+              className="btn btn-primary"
+              style={{ padding: '0.625rem 1rem', flexShrink: 0 }}
               disabled={!bulkStatus || isUpdating}
               onClick={handleBulkUpdate}
             >
-              {isUpdating ? '...' : 'OK'}
+              {isUpdating ? <span className="spinner" /> : 'OK'}
             </button>
           </div>
         </div>
       )}
 
+      {/* Filter drawer */}
+      <div className={`drawer-overlay ${filterDrawerOpen ? 'open' : ''}`} onClick={() => setFilterDrawerOpen(false)} />
+      <div className={`drawer ${filterDrawerOpen ? 'open' : ''}`}>
+        <div className="drawer-handle" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          <span style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--text-1)' }}>Filtres avancés</span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {hasAdvancedFilters && (
+              <button className="btn btn-secondary btn-sm" onClick={resetFilters}>
+                <X size={12} /> Réinitialiser
+              </button>
+            )}
+            <button className="btn btn-primary btn-sm" onClick={() => setFilterDrawerOpen(false)}>
+              Appliquer
+            </button>
+          </div>
+        </div>
+
+        {/* Date */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label className="form-label" style={{ marginBottom: '0.625rem' }}>Période</label>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {[['all', 'Tout'], ['today', "Aujourd'hui"], ['7d', '7 jours'], ['30d', '30 jours']].map(([val, lbl]) => (
+              <button key={val} className={`filter-chip ${filterDateRange === val ? 'active' : ''}`} onClick={() => setFilterDateRange(val)}>{lbl}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Shipping type */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label className="form-label" style={{ marginBottom: '0.625rem' }}>Type d'envoi</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {[['', 'Tous'], ['ORDINAIRE', 'Ordinaire'], ['EXPRESS', 'Express']].map(([val, lbl]) => (
+              <button key={val} className={`filter-chip ${filterShipping === val ? 'active' : ''}`} onClick={() => setFilterShipping(val)}>{lbl}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Weight range */}
+        <div>
+          <label className="form-label" style={{ marginBottom: '0.625rem' }}>Poids (kg)</label>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <input type="number" className="form-input" placeholder="Min" value={filterWeightMin} onChange={e => setFilterWeightMin(e.target.value)} style={{ flex: 1, fontSize: '0.875rem' }} step="0.1" min="0" />
+            <span style={{ color: 'var(--text-3)', fontWeight: '600', flexShrink: 0 }}>→</span>
+            <input type="number" className="form-input" placeholder="Max" value={filterWeightMax} onChange={e => setFilterWeightMax(e.target.value)} style={{ flex: 1, fontSize: '0.875rem' }} step="0.1" min="0" />
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Nav */}
       <nav className="bottom-nav">
-        <Link href="/chine" className="nav-item active"><Icons.Home /></Link>
-        <Link href="/add" className="nav-item" style={{ background: 'var(--primary)', color: 'white', marginTop: '-20px', height: '56px', width: '56px', boxShadow: 'var(--shadow-lg)' }}><Icons.Plus /></Link>
-        <Link href="/stats" className="nav-item"><Icons.BarChart /></Link>
-        <Link href="/profile" className="nav-item"><Icons.User /></Link>
+        <Link href="/chine"   className="nav-btn active" title="Accueil"><Home size={19} /></Link>
+        <Link href="/clients" className="nav-btn" title="Clients"><Users size={19} /></Link>
+        <Link href="/add"     className="nav-btn add-btn" title="Ajouter"><Plus size={22} /></Link>
+        <Link href="/stats"   className="nav-btn" title="Statistiques"><BarChart2 size={19} /></Link>
+        <Link href="/profile" className="nav-btn" title="Profil"><User size={19} /></Link>
       </nav>
     </div>
   );

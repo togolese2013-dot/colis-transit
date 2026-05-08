@@ -4,49 +4,14 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronLeft, TrendingUp, Home, Plus, BarChart2, User, Users } from "lucide-react";
 
-const Icons = {
-  Back: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-  ),
-  TrendUp: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-      <polyline points="17 6 23 6 23 12"></polyline>
-    </svg>
-  ),
-  Home: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-    </svg>
-  ),
-  Box: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-    </svg>
-  ),
-  Plus: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-  ),
-  BarChart: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="20" x2="12" y2="10"></line>
-      <line x1="18" y1="20" x2="18" y2="4"></line>
-      <line x1="6" y1="20" x2="6" y2="16"></line>
-    </svg>
-  ),
-  User: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-      <circle cx="12" cy="7" r="4"></circle>
-    </svg>
-  )
-};
+const STATUS_ITEMS = [
+  { key: 'china',     label: 'Reçu en Chine',   color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', status: 'RECU_CHINE'  },
+  { key: 'transit',   label: 'En Transit',        color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', status: 'EN_TRANSIT'  },
+  { key: 'lome',      label: 'Arrivé à Lomé',    color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0', status: 'ARRIVE_LOME' },
+  { key: 'delivered', label: 'Livré',             color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe', status: 'LIVRE'       },
+];
 
 export default function StatsPage() {
   const router = useRouter();
@@ -55,69 +20,107 @@ export default function StatsPage() {
 
   useEffect(() => {
     async function fetchPackages() {
-      const { data, error } = await supabase.from('packages').select('*');
+      const { data, error } = await supabase.from('packages').select('status');
       if (!error) setPackages(data || []);
       setLoading(false);
     }
     fetchPackages();
   }, []);
 
-  const stats = {
-    total: packages.length,
-    china: packages.filter(p => p.status === 'RECU_CHINE').length,
-    transit: packages.filter(p => p.status === 'EN_TRANSIT').length,
-    lome: packages.filter(p => p.status === 'ARRIVE_LOME').length,
+  const total     = packages.length;
+  const counts = {
+    china:     packages.filter(p => p.status === 'RECU_CHINE').length,
+    transit:   packages.filter(p => p.status === 'EN_TRANSIT').length,
+    lome:      packages.filter(p => p.status === 'ARRIVE_LOME').length,
     delivered: packages.filter(p => p.status === 'LIVRE').length,
   };
 
   return (
     <div className="container" style={{ paddingBottom: '120px' }}>
-      <header className="header">
-        <button className="back-btn" onClick={() => router.push("/")}><Icons.Back /></button>
-        <h1>Statistiques</h1>
-      </header>
 
-      <div className="stat-card primary" style={{ marginBottom: '24px', padding: '2rem' }}>
-        <div style={{ fontSize: '2.5rem', fontWeight: '700' }}>{stats.total}</div>
-        <div style={{ fontSize: '1rem', opacity: 0.9 }}>Colis gérés au total</div>
-        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-          <Icons.TrendUp />
-          <span>+12% ce mois-ci</span>
+      {/* Header */}
+      <div className="page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button className="back-btn" onClick={() => router.push("/chine")} type="button">
+            <ChevronLeft size={18} strokeWidth={2.5} />
+          </button>
+          <span className="page-title">Statistiques</span>
         </div>
       </div>
 
-      <h2 style={{ marginBottom: '1rem' }}>Répartition</h2>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {[
-          { label: 'Reçu en Chine', count: stats.china, color: '#f59e0b' },
-          { label: 'En Transit', count: stats.transit, color: 'var(--primary)' },
-          { label: 'Arrivé à Lomé', count: stats.lome, color: '#10b981' },
-          { label: 'Livré', count: stats.delivered, color: '#6366f1' },
-        ].map((item, i) => (
-          <div key={i} className="package-card" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <span style={{ fontWeight: '600' }}>{item.label}</span>
-              <span style={{ fontWeight: '700', color: item.color }}>{item.count}</span>
-            </div>
-            <div style={{ height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ 
-                height: '100%', 
-                background: item.color, 
-                width: `${stats.total > 0 ? (item.count / stats.total) * 100 : 0}%`,
-                borderRadius: '4px'
-              }}></div>
+      {/* Total card */}
+      <div style={{
+        background: 'linear-gradient(135deg, var(--accent) 0%, #fb923c 100%)',
+        borderRadius: 'var(--r-2xl)', padding: '1.75rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 8px 32px rgba(249,115,22,0.2)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.75)', marginBottom: '0.5rem' }}>
+              Total colis
+            </p>
+            <div style={{ fontSize: '3rem', fontWeight: '800', color: 'white', letterSpacing: '-0.04em', lineHeight: 1 }}>
+              {loading ? '—' : total}
             </div>
           </div>
-        ))}
+          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 'var(--r-lg)', padding: '0.625rem', color: 'white' }}>
+            <TrendingUp size={22} />
+          </div>
+        </div>
+        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem', color: 'rgba(255,255,255,0.8)' }}>
+          <TrendingUp size={14} />
+          <span>Plateforme Hamid Cargo</span>
+        </div>
       </div>
 
+      {/* Breakdown */}
+      <div style={{ marginBottom: '1rem' }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: '0.875rem' }}>
+          Répartition
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          {STATUS_ITEMS.map((item) => {
+            const count = counts[item.key as keyof typeof counts];
+            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+            return (
+              <div
+                key={item.key}
+                style={{
+                  background: 'white', border: '1.5px solid var(--border)',
+                  borderRadius: 'var(--r-xl)', padding: '1rem 1.25rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-2)' }}>{item.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{pct}%</span>
+                    <span style={{ fontSize: '1.0625rem', fontWeight: '700', color: item.color }}>{loading ? '—' : count}</span>
+                  </div>
+                </div>
+                <div style={{ height: '6px', background: 'var(--bg-subtle)', borderRadius: 'var(--r-full)', overflow: 'hidden', border: `1px solid ${item.border}` }}>
+                  <div style={{
+                    height: '100%', background: item.color,
+                    width: `${pct}%`, borderRadius: 'var(--r-full)',
+                    transition: 'width 0.6s ease',
+                  }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom Nav */}
       <nav className="bottom-nav">
-        <Link href="/" className="nav-item"><Icons.Home /></Link>
-        <Link href="/" className="nav-item"><Icons.Box /></Link>
-        <Link href="/add" className="nav-item" style={{ background: 'var(--primary)', color: 'white', marginTop: '-20px', height: '56px', width: '56px', boxShadow: 'var(--shadow-lg)' }}><Icons.Plus /></Link>
-        <Link href="/stats" className="nav-item active"><Icons.BarChart /></Link>
-        <Link href="/profile" className="nav-item"><Icons.User /></Link>
+        <Link href="/chine"   className="nav-btn" title="Accueil"><Home size={19} /></Link>
+        <Link href="/clients" className="nav-btn" title="Clients"><Users size={19} /></Link>
+        <Link href="/add"     className="nav-btn add-btn" title="Ajouter"><Plus size={22} /></Link>
+        <Link href="/stats"   className="nav-btn active" title="Statistiques"><BarChart2 size={19} /></Link>
+        <Link href="/profile" className="nav-btn" title="Profil"><User size={19} /></Link>
       </nav>
     </div>
   );

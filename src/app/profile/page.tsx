@@ -3,108 +3,86 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-const Icons = {
-  Back: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-  ),
-  User: () => (
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-      <circle cx="12" cy="7" r="4"></circle>
-    </svg>
-  ),
-  Settings: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3"></circle>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-    </svg>
-  ),
-  LogOut: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4"></path>
-      <polyline points="16 17 21 12 16 7"></polyline>
-      <line x1="21" y1="12" x2="9" y2="12"></line>
-    </svg>
-  ),
-  Home: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-    </svg>
-  ),
-  Box: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-    </svg>
-  ),
-  Plus: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-  ),
-  BarChart: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="20" x2="12" y2="10"></line>
-      <line x1="18" y1="20" x2="18" y2="4"></line>
-      <line x1="6" y1="20" x2="6" y2="16"></line>
-    </svg>
-  ),
-  UserNav: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-      <circle cx="12" cy="7" r="4"></circle>
-    </svg>
-  )
-};
+import { ChevronLeft, User, Settings, LogOut, Home, Plus, BarChart2, Users } from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
 
   return (
     <div className="container" style={{ paddingBottom: '120px' }}>
-      <header className="header">
-        <button className="back-btn" onClick={() => router.push("/")}><Icons.Back /></button>
-        <h1>Profil Admin</h1>
-      </header>
 
-      <div className="package-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '2rem' }}>
-        <div style={{ 
-          width: '80px', 
-          height: '80px', 
-          background: 'var(--primary-light)', 
-          borderRadius: '50%', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          margin: '0 auto 1rem',
-          color: 'var(--primary)'
-        }}>
-          <Icons.User />
+      {/* Header */}
+      <div className="page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button className="back-btn" onClick={() => router.push("/")} type="button">
+            <ChevronLeft size={18} strokeWidth={2.5} />
+          </button>
+          <span className="page-title">Profil</span>
         </div>
-        <h2 style={{ marginBottom: '0.25rem' }}>Transitaire Chine</h2>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Guangzhou Warehouse A1</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <button className="btn" style={{ background: 'var(--surface)', color: 'var(--text-main)', justifyContent: 'flex-start', gap: '1rem', border: '1px solid var(--border)' }}>
-          <Icons.Settings />
-          Paramètres du compte
+      {/* Profile card */}
+      <div className="card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1rem' }}>
+        <div style={{
+          width: '72px', height: '72px',
+          background: 'var(--accent-subtle)', border: '2px solid var(--accent-border)',
+          borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 1.125rem', color: 'var(--accent)',
+        }}>
+          <User size={32} strokeWidth={1.5} />
+        </div>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: '700', color: 'var(--text-1)', marginBottom: '0.25rem' }}>
+          Transitaire Chine
+        </h2>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>
+          Guangzhou Warehouse A1
+        </p>
+        <div style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'var(--success-subtle)', border: '1px solid var(--success-border)', borderRadius: 'var(--r-full)', padding: '0.25rem 0.75rem' }}>
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success)' }} />
+          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--success)' }}>Actif</span>
+        </div>
+      </div>
+
+      {/* Menu */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+        <button
+          className="btn btn-secondary btn-full"
+          style={{ justifyContent: 'flex-start', gap: '0.875rem', padding: '1rem 1.25rem', borderRadius: 'var(--r-xl)', height: 'auto' }}
+        >
+          <div style={{ width: '36px', height: '36px', background: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Settings size={17} color="var(--text-2)" />
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '0.9375rem', fontWeight: '600', color: 'var(--text-1)' }}>Paramètres</div>
+            <div style={{ fontSize: '0.78125rem', color: 'var(--text-3)', fontWeight: '400' }}>Gérer votre compte</div>
+          </div>
         </button>
-        <button className="btn" style={{ background: 'var(--surface)', color: '#ef4444', justifyContent: 'flex-start', gap: '1rem', border: '1px solid #fee2e2' }}>
-          <Icons.LogOut />
-          Déconnexion
+
+        <button
+          className="btn btn-full"
+          style={{
+            justifyContent: 'flex-start', gap: '0.875rem', padding: '1rem 1.25rem',
+            borderRadius: 'var(--r-xl)', height: 'auto',
+            background: 'var(--error-subtle)', border: '1.5px solid var(--error-border)',
+          }}
+        >
+          <div style={{ width: '36px', height: '36px', background: '#fee2e2', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <LogOut size={17} color="var(--error)" />
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '0.9375rem', fontWeight: '600', color: 'var(--error)' }}>Déconnexion</div>
+            <div style={{ fontSize: '0.78125rem', color: '#f87171', fontWeight: '400' }}>Quitter la session</div>
+          </div>
         </button>
       </div>
 
+      {/* Bottom Nav */}
       <nav className="bottom-nav">
-        <Link href="/" className="nav-item"><Icons.Home /></Link>
-        <Link href="/" className="nav-item"><Icons.Box /></Link>
-        <Link href="/add" className="nav-item" style={{ background: 'var(--primary)', color: 'white', marginTop: '-20px', height: '56px', width: '56px', boxShadow: 'var(--shadow-lg)' }}><Icons.Plus /></Link>
-        <Link href="/stats" className="nav-item"><Icons.BarChart /></Link>
-        <Link href="/profile" className="nav-item active"><Icons.UserNav /></Link>
+        <Link href="/chine"   className="nav-btn" title="Accueil"><Home size={19} /></Link>
+        <Link href="/clients" className="nav-btn" title="Clients"><Users size={19} /></Link>
+        <Link href="/add"     className="nav-btn add-btn" title="Ajouter"><Plus size={22} /></Link>
+        <Link href="/stats"   className="nav-btn" title="Statistiques"><BarChart2 size={19} /></Link>
+        <Link href="/profile" className="nav-btn active" title="Profil"><User size={19} /></Link>
       </nav>
     </div>
   );

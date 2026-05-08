@@ -4,67 +4,41 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft, Package, MessageCircle, Home, Plus, BarChart2, User, Users } from "lucide-react";
 
-const Icons = {
-  Back: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-  ),
-  Box: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-      <line x1="12" y1="22.08" x2="12" y2="12"></line>
-    </svg>
-  ),
-  Share: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3"></circle>
-      <circle cx="6" cy="12" r="3"></circle>
-      <circle cx="18" cy="19" r="3"></circle>
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-    </svg>
-  ),
-  Home: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-    </svg>
-  ),
-  Plus: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-  ),
-  BarChart: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="20" x2="12" y2="10"></line>
-      <line x1="18" y1="20" x2="18" y2="4"></line>
-      <line x1="6" y1="20" x2="6" y2="16"></line>
-    </svg>
-  ),
-  User: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-      <circle cx="12" cy="7" r="4"></circle>
-    </svg>
-  )
+const getBadgeClass = (status: string) => {
+  switch (status) {
+    case 'RECU_CHINE':  return 'badge-received';
+    case 'EN_TRANSIT':  return 'badge-transit';
+    case 'ARRIVE_LOME': return 'badge-arrived';
+    case 'LIVRE':       return 'badge-delivered';
+    default:            return 'badge-delivered';
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'RECU_CHINE':  return '🇨🇳 Reçu en Chine';
+    case 'EN_TRANSIT':  return '🚢 En Transit';
+    case 'ARRIVE_LOME': return '🇹🇬 Arrivé à Lomé';
+    case 'LIVRE':       return '✅ Livré';
+    default:            return status;
+  }
 };
 
 export default function EditPackage() {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
-  
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pkg, setPkg] = useState<any>(null);
-  const [status, setStatus] = useState("");
+
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+  const [pkg, setPkg]             = useState<any>(null);
+  const [status, setStatus]       = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [isClaiming, setIsClaiming] = useState(false);
+  const [notes, setNotes]         = useState("");
+  const [isClaiming, setIsClaiming]     = useState(false);
 
   useEffect(() => {
     async function fetchPackage() {
@@ -74,6 +48,7 @@ export default function EditPackage() {
         setPkg(data);
         setStatus(data.status);
         setCustomerName(data.customer_name || "");
+        setNotes(data.notes || "");
       }
       setLoading(false);
     }
@@ -92,7 +67,7 @@ export default function EditPackage() {
   };
 
   const handleWhatsAppNotify = () => {
-    const message = `Bonjour ${pkg.customer_name || 'Cher client'}, votre colis (Suivi: ${pkg.tracking_number}) est maintenant : ${pkg.status.replace('_', ' ')}. Suivez-le ici : ${window.location.origin}/edit/${id}`;
+    const message = `Bonjour ${pkg.customer_name || 'Cher client'}, votre colis (Suivi: ${pkg.tracking_number}) est maintenant : ${pkg.status.replace('_', ' ')}. Suivez-le ici : ${window.location.origin}/track?id=${pkg.tracking_number}`;
     const phone = pkg.customer_phone ? pkg.customer_phone.replace(/\s+/g, '') : '';
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -100,131 +75,175 @@ export default function EditPackage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const { error: updateError } = await supabase.from('packages').update({ status }).eq('id', id);
-    if (!updateError) router.push("/");
+    const { error: updateError } = await supabase.from('packages').update({ status, notes: notes || null }).eq('id', id);
+    if (!updateError) router.push("/chine");
     setSaving(false);
   };
 
-  if (loading) return <div className="container" style={{ textAlign: 'center', paddingTop: '100px' }}>Chargement...</div>;
-  if (!pkg) return <div className="container" style={{ textAlign: 'center', paddingTop: '100px' }}>{error}</div>;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span className="spinner-dark spinner" />
+    </div>
+  );
+
+  if (!pkg) return (
+    <div className="container" style={{ textAlign: 'center', paddingTop: '100px' }}>
+      <p style={{ color: 'var(--text-3)' }}>{error || 'Colis introuvable.'}</p>
+    </div>
+  );
 
   return (
-    <div className="container">
-      <header className="header">
-        <button className="back-btn" onClick={() => router.push("/")}><Icons.Back /></button>
-        <h1>Détails</h1>
-      </header>
+    <div className="container" style={{ paddingBottom: '120px' }}>
 
-      <div className="package-card" style={{ padding: '0', overflow: 'hidden', marginBottom: '1.5rem' }}>
-        {pkg.photo_url ? (
-          <img src={pkg.photo_url} alt="Colis" style={{ width: '100%', height: '240px', objectFit: 'cover' }} />
-        ) : (
-          <div style={{ height: '160px', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-            <Icons.Box />
-          </div>
-        )}
-        <div style={{ padding: '1.5rem' }}>
-          <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '0.5rem' }}>{pkg.tracking_number}</div>
-          <div style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>{pkg.item_name || 'Sans nom'}</div>
-          
-          {pkg.customer_name && (
-            <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-main)' }}>
-              <strong>Client :</strong> {pkg.customer_name}
-            </div>
-          )}
-
-          {pkg.customer_phone && (
-            <div style={{ fontSize: '0.9rem', marginBottom: '1rem', color: 'var(--text-main)' }}>
-              <strong>Tél :</strong> {pkg.customer_phone}
-            </div>
-          )}
-
-          {!pkg.customer_name && !isClaiming && (
-              <button 
-                onClick={() => setIsClaiming(true)}
-                style={{ 
-                  background: 'var(--primary-light)', 
-                  color: 'var(--primary)', 
-                  border: 'none', 
-                  padding: '0.5rem 1rem', 
-                  borderRadius: 'var(--radius-md)', 
-                  fontWeight: '600', 
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  marginBottom: '1rem'
-                }}
-              >
-                C'est mon colis ?
-              </button>
-          )}
-
-          {isClaiming && (
-            <form onSubmit={handleClaim} style={{ marginBottom: '1rem', background: 'var(--background)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-              <label className="form-label">Entrez votre nom</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                style={{ marginBottom: '0.5rem' }}
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                required
-              />
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '0.5rem' }} disabled={saving}>
-                  {saving ? '...' : 'Valider'}
-                </button>
-                <button type="button" onClick={() => setIsClaiming(false)} style={{ flex: 1, padding: '0.5rem', background: '#eee', border: 'none', borderRadius: 'var(--radius-md)' }}>
-                  Annuler
-                </button>
-              </div>
-            </form>
-          )}
-
-          <div className="package-badge">{pkg.status.replace('_', ' ')}</div>
-
-          <button 
-            onClick={handleWhatsAppNotify}
-            style={{ 
-              marginTop: '1rem',
-              width: '100%',
-              background: '#25D366', 
-              color: 'white', 
-              border: 'none', 
-              padding: '0.75rem', 
-              borderRadius: 'var(--radius-md)', 
-              fontWeight: '600', 
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Icons.Share />
-            Notifier via WhatsApp
+      {/* Header */}
+      <div className="page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button className="back-btn" onClick={() => router.push("/chine")} type="button">
+            <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
+          <span className="page-title">Détails colis</span>
         </div>
+        <span className={`badge ${getBadgeClass(pkg.status)}`}>
+          {getStatusLabel(pkg.status)}
+        </span>
       </div>
 
-      <form onSubmit={handleSubmit} className="package-card">
-        <div className="form-group">
+      {/* Photo / placeholder */}
+      <div style={{
+        borderRadius: 'var(--r-2xl)', overflow: 'hidden',
+        border: '1.5px solid var(--border)', marginBottom: '1rem',
+        background: 'var(--bg-subtle)',
+      }}>
+        {pkg.photo_url ? (
+          <img src={pkg.photo_url} alt="Colis" style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }} />
+        ) : (
+          <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-3)' }}>
+            <Package size={36} strokeWidth={1.5} />
+            <span style={{ fontSize: '0.8125rem' }}>Aucune photo</span>
+          </div>
+        )}
+      </div>
+
+      {/* Info card */}
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.0625rem', fontWeight: '700', color: 'var(--text-1)', marginBottom: '1rem', letterSpacing: '0.02em' }}>
+          {pkg.tracking_number}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          {pkg.customer_name && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>Client</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)' }}>{pkg.customer_name}</span>
+            </div>
+          )}
+          {pkg.customer_phone && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>Téléphone</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)' }}>{pkg.customer_phone}</span>
+            </div>
+          )}
+          {pkg.weight_kg && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>Poids</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)' }}>{pkg.weight_kg} kg</span>
+            </div>
+          )}
+        </div>
+
+        {/* Claim button */}
+        {!pkg.customer_name && !isClaiming && (
+          <button
+            onClick={() => setIsClaiming(true)}
+            className="btn btn-secondary btn-full btn-sm"
+            style={{ marginTop: '1rem', borderRadius: 'var(--r-lg)' }}
+          >
+            C'est mon colis ?
+          </button>
+        )}
+
+        {/* Claim form */}
+        {isClaiming && (
+          <form onSubmit={handleClaim} style={{ marginTop: '1rem', background: 'var(--bg-subtle)', padding: '1rem', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
+            <label className="form-label">Votre nom</label>
+            <input
+              type="text"
+              className="form-input"
+              style={{ marginBottom: '0.625rem' }}
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              required
+            />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>
+                {saving ? <span className="spinner" /> : 'Valider'}
+              </button>
+              <button type="button" onClick={() => setIsClaiming(false)} className="btn btn-secondary" style={{ flex: 1 }}>
+                Annuler
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* WhatsApp */}
+        {pkg.customer_phone && (
+          <button
+            onClick={handleWhatsAppNotify}
+            style={{
+              marginTop: '1rem', width: '100%',
+              background: '#25D366', color: 'white', border: 'none',
+              padding: '0.75rem', borderRadius: 'var(--r-lg)',
+              fontWeight: '600', fontSize: '0.875rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: '0.5rem', cursor: 'pointer',
+              fontFamily: 'var(--font)',
+            }}
+          >
+            <MessageCircle size={16} />
+            Notifier via WhatsApp
+          </button>
+        )}
+      </div>
+
+      {/* Notes internes */}
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <label className="form-label" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+          <span style={{ fontSize: '0.6875rem', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', padding: '0.1rem 0.5rem', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Admin</span>
+          Notes internes
+        </label>
+        <textarea
+          className="form-input"
+          placeholder="Fragile, paiement en attente, instructions spéciales..."
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          rows={3}
+          style={{ resize: 'none', fontSize: '0.875rem', lineHeight: 1.5 }}
+        />
+      </div>
+
+      {/* Status form */}
+      <form onSubmit={handleSubmit} className="card">
+        <div className="form-field" style={{ marginBottom: '1rem' }}>
           <label className="form-label">Modifier le statut</label>
-          <select className="form-input" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="RECU_CHINE">Reçu en Chine</option>
-            <option value="EN_TRANSIT">En Transit (Départ Chine)</option>
+          <select className="form-input form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="RECU_CHINE">🇨🇳 Reçu en Chine</option>
+            <option value="EN_TRANSIT">🚢 En Transit</option>
+            <option value="ARRIVE_LOME">🇹🇬 Arrivé à Lomé</option>
+            <option value="LIVRE">✅ Livré</option>
           </select>
         </div>
-        <button type="submit" className="btn btn-primary" disabled={saving}>
-          {saving ? "Mise à jour..." : "Enregistrer les modifications"}
+        <button type="submit" className="btn btn-primary btn-full" disabled={saving}>
+          {saving ? <><span className="spinner" />Mise à jour...</> : 'Enregistrer'}
         </button>
       </form>
 
+      {/* Bottom Nav */}
       <nav className="bottom-nav">
-        <Link href="/" className="nav-item"><Icons.Home /></Link>
-        <Link href="/" className="nav-item active"><Icons.Box /></Link>
-        <Link href="/add" className="nav-item" style={{ background: 'var(--primary)', color: 'white', marginTop: '-20px', height: '56px', width: '56px', boxShadow: 'var(--shadow-lg)' }}><Icons.Plus /></Link>
-        <Link href="/stats" className="nav-item"><Icons.BarChart /></Link>
-        <Link href="/profile" className="nav-item"><Icons.User /></Link>
+        <Link href="/chine"   className="nav-btn" title="Accueil"><Home size={19} /></Link>
+        <Link href="/clients" className="nav-btn" title="Clients"><Users size={19} /></Link>
+        <Link href="/add"     className="nav-btn add-btn" title="Ajouter"><Plus size={22} /></Link>
+        <Link href="/stats"   className="nav-btn" title="Statistiques"><BarChart2 size={19} /></Link>
+        <Link href="/profile" className="nav-btn" title="Profil"><User size={19} /></Link>
       </nav>
     </div>
   );
