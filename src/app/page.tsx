@@ -241,7 +241,28 @@ export default function EntryPage() {
           </Link>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: '3rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
+        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <Link
+            href="/admin"
+            style={{
+              fontSize: '0.75rem',
+              color: 'var(--text-3)',
+              textDecoration: 'none',
+              padding: '0.375rem 0.875rem',
+              borderRadius: 'var(--r-full)',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-subtle)',
+              display: 'inline-block',
+              transition: 'color 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-1)'; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border-strong)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-3)'; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border)'; }}
+          >
+            admin
+          </Link>
+        </div>
+
+        <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
           © 2026 Hamid Cargo Logistics
         </p>
       </div>

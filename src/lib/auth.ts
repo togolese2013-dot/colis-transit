@@ -8,6 +8,7 @@ export const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 export interface AdminPayload {
   id: string
   username: string
+  role: string
   [key: string]: unknown
 }
 

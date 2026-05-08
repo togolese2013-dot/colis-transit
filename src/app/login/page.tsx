@@ -1,11 +1,18 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Package, Eye, EyeOff, Lock, User } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
+
+  // Redirect to home if already authenticated
+  useEffect(() => {
+    fetch('/api/auth/profile')
+      .then(r => { if (r.ok) router.replace('/') })
+      .catch(() => {})
+  }, [router])
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -33,7 +40,9 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/chine')
+      localStorage.setItem('hc_user', username.trim().toLowerCase())
+      if (data.displayName) localStorage.setItem('hc_display_name', data.displayName)
+      router.push('/')
     } catch (err) {
       console.error(err)
       setError('Erreur réseau, veuillez réessayer')

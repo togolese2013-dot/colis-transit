@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     const { data: admin, error } = await supabase
       .from('admins')
-      .select('id, username, password_hash')
+      .select('id, username, password_hash, role, display_name')
       .eq('username', username.trim().toLowerCase())
       .single()
 
@@ -26,9 +26,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 })
     }
 
-    const token = await signToken({ id: admin.id, username: admin.username })
+    if (admin.role === 'disabled') {
+      return NextResponse.json({ error: 'Ce compte a été désactivé' }, { status: 403 })
+    }
 
-    const res = NextResponse.json({ success: true })
+    const token = await signToken({ id: admin.id, username: admin.username, role: admin.role || 'admin' })
+
+    const res = NextResponse.json({
+      success: true,
+      displayName: admin.display_name || admin.username,
+    })
     res.cookies.set(COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

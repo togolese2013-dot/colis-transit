@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Bell, Plus, BarChart2, User, Trash2, Send, Home, Upload, SlidersHorizontal, Users, X } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const getBadgeClass = (status: string) => {
   switch (status) {
@@ -30,6 +31,7 @@ interface ClaimNotif { id: string; tracking: string; name: string; phone: string
 
 export default function PackageHistory() {
   const router = useRouter();
+  const { username, initials } = useCurrentUser();
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -166,10 +168,10 @@ export default function PackageHistory() {
       <div className="page-header">
         <div className="header-user">
           <div className="avatar">
-            <span style={{ fontSize: '0.9375rem' }}>JC</span>
+            <span style={{ fontSize: '0.9375rem' }}>{initials}</span>
           </div>
           <div className="user-info">
-            <h2>James Carter</h2>
+            <h2>{username || 'Admin'}</h2>
             <p>Guangzhou Warehouse</p>
           </div>
         </div>

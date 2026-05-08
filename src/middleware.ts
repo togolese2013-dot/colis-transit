@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
-const PUBLIC_PATHS = ['/', '/track', '/login']
+const PUBLIC_PATHS = ['/track', '/login']
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -22,6 +22,16 @@ export async function middleware(req: NextRequest) {
       const loginUrl = new URL('/login', req.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
+    }
+
+    // /admin reserved for superadmin only
+    if (pathname.startsWith('/admin') && session.role !== 'superadmin') {
+      return NextResponse.redirect(new URL('/chine', req.url))
+    }
+
+    // /api/admin reserved for superadmin only
+    if (pathname.startsWith('/api/admin') && session.role !== 'superadmin') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
   } catch {
     const loginUrl = new URL('/login', req.url)

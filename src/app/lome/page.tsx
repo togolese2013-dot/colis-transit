@@ -5,11 +5,13 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Bell, Home, Truck, CheckCircle, User, Clock } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface ClaimNotif { id: string; tracking: string; name: string; phone: string | null; time: Date; }
 
 export default function LomeDashboard() {
   const router = useRouter();
+  const { username, initials } = useCurrentUser();
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,10 +98,10 @@ export default function LomeDashboard() {
       <div className="page-header">
         <div className="header-user">
           <div className="avatar" style={{ background: 'var(--blue-subtle)', borderColor: 'var(--blue-border)', color: 'var(--blue)' }}>
-            <span style={{ fontSize: '0.9375rem' }}>AL</span>
+            <span style={{ fontSize: '0.9375rem' }}>{initials}</span>
           </div>
           <div className="user-info">
-            <h2>Agent Lomé</h2>
+            <h2>{username || 'Admin'}</h2>
             <p>Espace Livraisons</p>
           </div>
         </div>

@@ -4,9 +4,17 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, User, Settings, LogOut, Home, Plus, BarChart2, Users } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { username, initials } = useCurrentUser();
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    localStorage.removeItem('hc_user')
+    router.push('/login')
+  }
 
   return (
     <div className="container" style={{ paddingBottom: '120px' }}>
@@ -28,14 +36,15 @@ export default function ProfilePage() {
           background: 'var(--accent-subtle)', border: '2px solid var(--accent-border)',
           borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 1.125rem', color: 'var(--accent)',
+          fontSize: '1.5rem', fontWeight: '700',
         }}>
-          <User size={32} strokeWidth={1.5} />
+          {initials}
         </div>
         <h2 style={{ fontSize: '1.125rem', fontWeight: '700', color: 'var(--text-1)', marginBottom: '0.25rem' }}>
-          Transitaire Chine
+          {username || 'Admin'}
         </h2>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>
-          Guangzhou Warehouse A1
+          Administrateur
         </p>
         <div style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'var(--success-subtle)', border: '1px solid var(--success-border)', borderRadius: 'var(--r-full)', padding: '0.25rem 0.75rem' }}>
           <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success)' }} />
@@ -46,6 +55,7 @@ export default function ProfilePage() {
       {/* Menu */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
         <button
+          onClick={() => router.push('/settings')}
           className="btn btn-secondary btn-full"
           style={{ justifyContent: 'flex-start', gap: '0.875rem', padding: '1rem 1.25rem', borderRadius: 'var(--r-xl)', height: 'auto' }}
         >
@@ -59,6 +69,7 @@ export default function ProfilePage() {
         </button>
 
         <button
+          onClick={handleLogout}
           className="btn btn-full"
           style={{
             justifyContent: 'flex-start', gap: '0.875rem', padding: '1rem 1.25rem',
