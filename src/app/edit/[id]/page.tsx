@@ -39,6 +39,25 @@ export default function EditPackage() {
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes]         = useState("");
   const [isClaiming, setIsClaiming]     = useState(false);
+  const [signedUrls, setSignedUrls]     = useState<string[]>([]);
+
+  function extractPath(publicUrl: string): string {
+    // Extract path after /object/public/packages/
+    const marker = '/object/public/packages/';
+    const idx = publicUrl.indexOf(marker);
+    return idx !== -1 ? publicUrl.slice(idx + marker.length) : publicUrl;
+  }
+
+  async function generateSignedUrls(rawUrls: string[]) {
+    const results = await Promise.all(
+      rawUrls.map(async (url) => {
+        const path = extractPath(url);
+        const { data } = await supabase.storage.from('packages').createSignedUrl(path, 60 * 60 * 24);
+        return data?.signedUrl ?? null;
+      })
+    );
+    setSignedUrls(results.filter(Boolean) as string[]);
+  }
 
   useEffect(() => {
     async function fetchPackage() {
@@ -49,6 +68,11 @@ export default function EditPackage() {
         setStatus(data.status);
         setCustomerName(data.customer_name || "");
         setNotes(data.notes || "");
+
+        const rawUrls: string[] = Array.isArray(data.photo_urls) && data.photo_urls.length > 0
+          ? data.photo_urls
+          : data.photo_url ? [data.photo_url] : [];
+        if (rawUrls.length > 0) generateSignedUrls(rawUrls);
       }
       setLoading(false);
     }
@@ -109,48 +133,34 @@ export default function EditPackage() {
       </div>
 
       {/* Photos */}
-      {(() => {
-        const photos: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0
-          ? pkg.photo_urls
-          : pkg.photo_url ? [pkg.photo_url] : [];
-        return photos.length > 0 ? (
-          <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginBottom: '1rem', paddingBottom: '0.25rem' }}>
-            {photos.map((url: string, i: number) => (
-              <div key={i} style={{
-                flexShrink: 0, borderRadius: 'var(--r-xl)', overflow: 'hidden',
-                border: '1.5px solid var(--border)', background: 'var(--bg-subtle)',
-                width: photos.length === 1 ? '100%' : '200px',
-                height: '200px',
-              }}>
-                <img
-                  src={url}
-                  alt={`Photo ${i + 1}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  onError={e => {
-                    const el = e.currentTarget;
-                    el.style.display = 'none';
-                    const parent = el.parentElement!;
-                    parent.style.display = 'flex';
-                    parent.style.alignItems = 'center';
-                    parent.style.justifyContent = 'center';
-                    parent.innerHTML = '<span style="font-size:0.75rem;color:var(--text-3)">Image indisponible</span>';
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{
-            borderRadius: 'var(--r-2xl)', border: '1.5px solid var(--border)',
-            marginBottom: '1rem', background: 'var(--bg-subtle)',
-            height: '140px', display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-3)',
-          }}>
-            <Package size={36} strokeWidth={1.5} />
-            <span style={{ fontSize: '0.8125rem' }}>Aucune photo</span>
-          </div>
-        );
-      })()}
+      {signedUrls.length > 0 ? (
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginBottom: '1rem', paddingBottom: '0.25rem' }}>
+          {signedUrls.map((url, i) => (
+            <div key={i} style={{
+              flexShrink: 0, borderRadius: 'var(--r-xl)', overflow: 'hidden',
+              border: '1.5px solid var(--border)', background: 'var(--bg-subtle)',
+              width: signedUrls.length === 1 ? '100%' : '200px',
+              height: '200px',
+            }}>
+              <img
+                src={url}
+                alt={`Photo ${i + 1}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{
+          borderRadius: 'var(--r-2xl)', border: '1.5px solid var(--border)',
+          marginBottom: '1rem', background: 'var(--bg-subtle)',
+          height: '140px', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-3)',
+        }}>
+          <Package size={36} strokeWidth={1.5} />
+          <span style={{ fontSize: '0.8125rem' }}>Aucune photo</span>
+        </div>
+      )}
 
       {/* Info card */}
       <div className="card" style={{ marginBottom: '1rem' }}>
