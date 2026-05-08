@@ -2,46 +2,98 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BrowserMultiFormatReader } from "@zxing/library";
+import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from "@zxing/library";
 import { ChevronLeft } from "lucide-react";
 
 export default function ScanPage() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const detectedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [detected, setDetected] = useState<string | null>(null);
 
   useEffect(() => {
-    const reader = new BrowserMultiFormatReader();
-    readerRef.current = reader;
+    let cancelled = false;
 
-    reader.decodeFromVideoDevice(null, videoRef.current!, (result, err) => {
-      if (result && !detectedRef.current) {
-        detectedRef.current = true;
-        const text = result.getText().toUpperCase();
-        setDetected(text);
-        reader.reset();
+    async function start() {
+      try {
+        // Force high-res rear camera — more pixels = reads from further away
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { exact: 'environment' },
+            width:  { min: 1280, ideal: 1920 },
+            height: { min: 720,  ideal: 1080 },
+          },
+        }).catch(() =>
+          // Fallback: any rear camera without exact constraint
+          navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          })
+        );
 
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = "sine"; osc.frequency.value = 880;
-          osc.start(); setTimeout(() => osc.stop(), 120);
-        } catch {}
-        if (navigator.vibrate) navigator.vibrate(200);
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
-        setTimeout(() => router.push(`/add?tracking=${encodeURIComponent(text)}`), 350);
+        streamRef.current = stream;
+        const video = videoRef.current!;
+        video.srcObject = stream;
+        await video.play();
+
+        // Limit formats to what logistics labels actually use → faster decode cycle
+        const hints: Map<DecodeHintType, any> = new Map();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.CODE_128,   // most common: DHL, FedEx, USPS, Chinese logistics
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.CODE_93,
+          BarcodeFormat.QR_CODE,
+          BarcodeFormat.DATA_MATRIX,
+          BarcodeFormat.ITF,
+        ]);
+
+        const reader = new BrowserMultiFormatReader(hints, 0);
+        readerRef.current = reader;
+
+        reader.decodeFromStream(stream, video, (result, err) => {
+          if (result && !detectedRef.current) {
+            detectedRef.current = true;
+            const text = result.getText().toUpperCase();
+            setDetected(text);
+            reader.reset();
+            stream.getTracks().forEach(t => t.stop());
+
+            try {
+              const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.type = "sine"; osc.frequency.value = 880;
+              osc.start(); setTimeout(() => osc.stop(), 120);
+            } catch {}
+            if (navigator.vibrate) navigator.vibrate(200);
+
+            setTimeout(() => router.push(`/add?tracking=${encodeURIComponent(text)}`), 350);
+          }
+        });
+      } catch {
+        setError("Impossible d'accéder à la caméra. Vérifiez les permissions.");
       }
-    }).catch(() => setError("Impossible d'accéder à la caméra. Vérifiez les permissions."));
+    }
 
-    return () => { reader.reset(); };
+    start();
+
+    return () => {
+      cancelled = true;
+      readerRef.current?.reset();
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    };
   }, []); // eslint-disable-line
 
-  const handleBack = () => { readerRef.current?.reset(); router.push("/add"); };
+  const handleBack = () => {
+    readerRef.current?.reset();
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    router.push("/add");
+  };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 100, overflow: 'hidden' }}>
@@ -90,7 +142,7 @@ export default function ScanPage() {
         </div>
         {!detected && !error && (
           <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.8125rem', fontWeight: '500', textAlign: 'center' }}>
-            Pointez vers un code-barres ou QR code
+            Centrez le code-barres dans le cadre
           </p>
         )}
       </div>
