@@ -4,9 +4,7 @@ import React, { useState, useRef, useCallback, memo, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ScanLine, Camera, Trash2, Home, Plus, BarChart2, User, Users, Zap } from "lucide-react";
-import { BrowserMultiFormatReader } from "@zxing/library";
-import Quagga from "@ericblade/quagga2";
+import { ChevronLeft, Camera, Trash2, Home, Plus, BarChart2, User, Users, Zap } from "lucide-react";
 
 const AddPackage = () => {
   const router = useRouter();
@@ -18,9 +16,7 @@ const AddPackage = () => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const photoScanRef    = useRef<HTMLInputElement>(null);
   const multiPhotoInputRef = useRef<HTMLInputElement>(null);
-  const canvasRef       = useRef<HTMLCanvasElement>(null);
 
   const [formData, setFormData] = useState({
     tracking_number: "",
@@ -36,83 +32,7 @@ const AddPackage = () => {
     if (tracking) setFormData(prev => ({ ...prev, tracking_number: tracking }));
   }, [searchParams]);
 
-  const finishScan = (text: string) => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      osc.start();
-      setTimeout(() => osc.stop(), 100);
-    } catch (e) {}
-    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(200);
-    setFormData(prev => ({ ...prev, tracking_number: text.toUpperCase() }));
-    setLoading(false);
-  };
-
-  const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const originalImg = new Image();
-      originalImg.src = URL.createObjectURL(file);
-      await new Promise((resolve) => (originalImg.onload = resolve));
-
-      const canvas = canvasRef.current;
-      if (!canvas) throw new Error("Canvas Error");
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) throw new Error("Context Error");
-
-      const tryScan = async (dataUrl: string) => {
-        try {
-          const reader = new BrowserMultiFormatReader();
-          const result = await reader.decodeFromImageUrl(dataUrl);
-          return result ? result.getText() : null;
-        } catch {
-          try {
-            const quaggaResult = await new Promise((resolve) => {
-              Quagga.decodeSingle({
-                src: dataUrl, numOfWorkers: 0,
-                inputStream: { size: 1200 },
-                decoder: { readers: ["code_128_reader", "ean_reader"] },
-                locate: true,
-              }, (res) => resolve(res));
-            });
-            return (quaggaResult as any)?.codeResult?.code || null;
-          } catch { return null; }
-        }
-      };
-
-      canvas.width = 1200; canvas.height = 800;
-      ctx.filter = "contrast(220%) grayscale(100%)";
-      const zoomSize = Math.min(originalImg.width, originalImg.height) * 0.6;
-      ctx.drawImage(originalImg, (originalImg.width - zoomSize) / 2, (originalImg.height - zoomSize) / 2, zoomSize, zoomSize, 0, 0, 1200, 800);
-      let text = await tryScan(canvas.toDataURL("image/jpeg", 0.95));
-      if (text) { finishScan(text); return; }
-
-      canvas.width = 1600; canvas.height = 1600 * (originalImg.height / originalImg.width);
-      ctx.filter = "contrast(160%) brightness(105%)";
-      ctx.drawImage(originalImg, 0, 0, canvas.width, canvas.height);
-      text = await tryScan(canvas.toDataURL("image/jpeg", 0.85));
-      if (text) { finishScan(text); return; }
-
-      throw new Error("Code non détecté.");
-    } catch {
-      setError("Code non détecté. Saisissez-le manuellement.");
-    } finally {
-      setLoading(false);
-      if (photoScanRef.current) photoScanRef.current.value = "";
-    }
-  };
-
-  const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       setPhotos(prev => [...prev, ...newFiles]);
@@ -207,8 +127,6 @@ const AddPackage = () => {
         </div>
       </div>
 
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-
       <form onSubmit={handleSubmit}>
 
         {/* Error */}
@@ -227,47 +145,21 @@ const AddPackage = () => {
         <div className="card" style={{ marginBottom: '1.25rem', padding: '1.125rem' }}>
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: previews.length > 0 ? '0.875rem' : 0 }}>
 
-            {/* Scanner */}
-            <button
-              type="button"
-              onClick={() => photoScanRef.current?.click()}
-              disabled={loading}
-              style={{
-                flex: 1.6, height: '96px',
-                background: loading ? 'var(--bg-subtle)' : 'var(--accent)',
-                color: loading ? 'var(--text-3)' : 'white',
-                border: 'none', borderRadius: 'var(--r-xl)',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                gap: '0.5rem', cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {loading
-                ? <span className="spinner-dark spinner" />
-                : <>
-                    <ScanLine size={22} strokeWidth={2} />
-                    <span style={{ fontSize: '0.71875rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Scanner Tracking</span>
-                  </>
-              }
-            </button>
-            <input type="file" ref={photoScanRef} accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhotoScan} />
-
             {/* Live scanner */}
             <button
               type="button"
               onClick={() => router.push('/scan')}
               style={{
-                flex: 1, height: '96px',
-                background: 'var(--bg-subtle)', color: 'var(--text-2)',
-                border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)',
+                flex: 1.6, height: '96px',
+                background: 'var(--accent)', color: 'white',
+                border: 'none', borderRadius: 'var(--r-xl)',
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                gap: '0.5rem', cursor: 'pointer', transition: 'all 0.15s',
+                gap: '0.5rem', cursor: 'pointer', transition: 'all 0.15s ease',
               }}
             >
-              <Zap size={18} />
-              <span style={{ fontSize: '0.6875rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Live</span>
+              <Zap size={22} strokeWidth={2} />
+              <span style={{ fontSize: '0.71875rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Scanner Tracking</span>
             </button>
 
             {/* Multi-photos */}
