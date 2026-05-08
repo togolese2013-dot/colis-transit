@@ -213,7 +213,7 @@ export default function PublicTracking() {
       </div>
 
       <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-        <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>© 2026 Antigravity Logistics — Chine & Togo</p>
+        <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>© 2026 Hamid Cargo Logistics — Chine & Togo</p>
       </div>
 
       <style jsx global>{`

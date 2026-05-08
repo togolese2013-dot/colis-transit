@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Colis Transit | Suivi & Gestion",
+  title: "Hamid Cargo | Suivi & Gestion",
   description: "Système de gestion de colis entre la Chine et le Togo.",
 };
 

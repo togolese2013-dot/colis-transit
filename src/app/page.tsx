@@ -29,7 +29,7 @@ export default function EntryPage() {
       padding: '2rem'
     }}>
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '0.5rem' }}>Antigravity</h1>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '0.5rem' }}>Hamid Cargo</h1>
         <p style={{ color: 'var(--text-muted)' }}>Plateforme Logistique Internationale</p>
       </div>
 
@@ -78,7 +78,7 @@ export default function EntryPage() {
       </div>
 
       <p style={{ textAlign: 'center', marginTop: '4rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        © 2026 Antigravity Logistics
+        © 2026 Hamid Cargo Logistics
       </p>
     </div>
   );
