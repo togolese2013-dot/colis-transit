@@ -33,9 +33,35 @@ const AddPackage = () => {
     if (tracking) setFormData(prev => ({ ...prev, tracking_number: tracking }));
   }, [searchParams]);
 
-const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX = 1920;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else                { width = Math.round(width * MAX / height);  height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => resolve(blob ? new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }) : file),
+          'image/jpeg', 0.9
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+      img.src = objectUrl;
+    });
+  };
+
+  const handleMultiPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
+      const newFiles = await Promise.all(Array.from(e.target.files).map(compressImage));
       setPhotos(prev => [...prev, ...newFiles]);
       setPreviews(prev => [...prev, ...newFiles.map(f => URL.createObjectURL(f))]);
     }
