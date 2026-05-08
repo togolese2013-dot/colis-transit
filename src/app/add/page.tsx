@@ -107,7 +107,7 @@ const AddPackage = () => {
     }
   }, []);
 
-  // SCAN PHOTO LOGIC (WITH IMAGE ENHANCEMENT FOR BLURRY CODES)
+  // SCAN PHOTO LOGIC (MULTI-STAGE DEEP ANALYSIS)
   const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -116,14 +116,13 @@ const AddPackage = () => {
     setError(null);
     
     const hints = new Map();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE, BarcodeFormat.EAN_13]);
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE, BarcodeFormat.EAN_13, BarcodeFormat.CODE_39]);
     hints.set(DecodeHintType.TRY_HARDER, true);
     const reader = new BrowserMultiFormatReader(hints);
     
     try {
       const img = new Image();
       img.src = URL.createObjectURL(file);
-      
       await new Promise((resolve) => (img.onload = resolve));
 
       const canvas = canvasRef.current;
@@ -131,49 +130,63 @@ const AddPackage = () => {
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) return;
 
-      // Étape 1 : On essaie avec l'image originale
-      try {
-        const result = await reader.decodeFromImageUrl(img.src);
-        if (result && result.getText().length > 6) {
-          playBeep();
-          vibrate();
-          setFormData(prev => ({ ...prev, tracking_number: result.getText() }));
-          setLoading(false);
-          return;
-        }
-      } catch (e) {}
+      const tryDecode = async (source: string) => {
+        try {
+          const result = await reader.decodeFromImageUrl(source);
+          if (result && result.getText().length > 5) return result.getText();
+        } catch (e) { return null; }
+      };
 
-      // Étape 2 : Si échec, on améliore l'image (Contraste + Noir et Blanc)
-      console.log("Amélioration de l'image pour code flou...");
+      // TENTATIVE 1 : Image Originale
+      let text = await tryDecode(img.src);
+      if (text) {
+        finishScan(text);
+        return;
+      }
+
+      // TENTATIVE 2 : Image Contrastée (Noir et Blanc)
+      console.log("Tentative 2 : Contraste Boosté...");
       canvas.width = img.width;
       canvas.height = img.height;
-      
-      // Filtres CSS Canvas pour forcer la netteté
-      ctx.filter = "contrast(200%) grayscale(100%) brightness(110%)";
+      ctx.filter = "contrast(250%) grayscale(100%)";
       ctx.drawImage(img, 0, 0);
-      
-      const enhancedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
-      
-      try {
-        const result = await reader.decodeFromImageUrl(enhancedDataUrl);
-        if (result) {
-          playBeep();
-          vibrate();
-          setFormData(prev => ({ ...prev, tracking_number: result.getText() }));
-          setLoading(false);
-          return;
-        }
-      } catch (e) {
-        throw new Error("Impossible de lire le code, même avec amélioration.");
+      text = await tryDecode(canvas.toDataURL("image/jpeg", 0.9));
+      if (text) {
+        finishScan(text);
+        return;
       }
-      
+
+      // TENTATIVE 3 : Zoom Central (Shipping labels focus)
+      console.log("Tentative 3 : Zoom Central...");
+      const zoomSize = Math.min(img.width, img.height) * 0.7;
+      const sx = (img.width - zoomSize) / 2;
+      const sy = (img.height - zoomSize) / 2;
+      canvas.width = 1000; // Resize pour plus de clarté
+      canvas.height = 1000;
+      ctx.filter = "contrast(200%) brightness(110%) grayscale(100%)";
+      ctx.drawImage(img, sx, sy, zoomSize, zoomSize, 0, 0, 1000, 1000);
+      text = await tryDecode(canvas.toDataURL("image/jpeg", 0.9));
+      if (text) {
+        finishScan(text);
+        return;
+      }
+
+      throw new Error("Impossible de lire ce code. Essayez de prendre la photo de plus près ou avec plus de lumière.");
+
     } catch (err) {
       console.error("Scan error:", err);
-      setError("Le code est trop flou. Essayez de stabiliser le téléphone ou de vous éloigner un peu pour que la mise au point se fasse.");
+      setError("Le code n'est pas détecté. Conseil : Prenez la photo bien en face du code-barres JT315... et évitez les reflets.");
     } finally {
       setLoading(false);
       if (photoScanRef.current) photoScanRef.current.value = "";
     }
+  };
+
+  const finishScan = (text: string) => {
+    playBeep();
+    vibrate();
+    setFormData(prev => ({ ...prev, tracking_number: text }));
+    setLoading(false);
   };
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -335,7 +348,7 @@ const AddPackage = () => {
             </label>
           </div>
 
-          {/* SCAN PAR PHOTO (POWERFUL) */}
+          {/* SCAN PAR PHOTO (DEEP ANALYSIS) */}
           <button 
             type="button"
             onClick={() => photoScanRef.current?.click()}
@@ -357,7 +370,10 @@ const AddPackage = () => {
             }}
           >
             {loading ? (
-              <span className="loader" style={{ width: '24px', height: '24px', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }}></span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <span className="loader" style={{ width: '24px', height: '24px', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }}></span>
+                <span style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>Analyse profonde...</span>
+              </div>
             ) : (
               <>
                 <Icons.Scan />
@@ -385,7 +401,7 @@ const AddPackage = () => {
             value={formData.tracking_number} 
             onChange={handleChange} 
             required 
-            style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--primary)', textAlign: 'center' }}
+            style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--primary)', textAlign: 'center', border: '2px solid var(--primary-light)' }}
           />
         </div>
 
