@@ -230,50 +230,53 @@ const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
         {/* Customer info */}
         <div className="card" style={{ marginBottom: '1rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ position: 'relative' }}>
-            <label className="form-label">Nom du client</label>
-            <input
-              type="text"
-              name="customer_name"
-              className="form-input"
-              placeholder="Nom complet"
-              value={formData.customer_name}
-              onChange={handleChange}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              autoComplete="off"
-              disabled={unknownClient}
-            />
-            {showSuggestions && suggestions.length > 0 && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
-                background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.10)', overflow: 'hidden',
-              }}>
-                {suggestions.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onMouseDown={() => selectCustomer(c)}
-                    style={{
-                      width: '100%', textAlign: 'left',
-                      padding: '0.75rem 1rem', background: 'none', border: 'none',
-                      cursor: 'pointer', borderBottom: '1px solid var(--border)',
-                      display: 'flex', flexDirection: 'column', gap: '0.125rem',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-subtle)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                  >
-                    <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)' }}>{c.name}</span>
-                    {c.phone && <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{c.phone}</span>}
-                  </button>
-                ))}
+          {!unknownClient && (
+            <>
+              <div style={{ position: 'relative' }}>
+                <label className="form-label">Nom du client</label>
+                <input
+                  type="text"
+                  name="customer_name"
+                  className="form-input"
+                  placeholder="Nom complet"
+                  value={formData.customer_name}
+                  onChange={handleChange}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  autoComplete="off"
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+                    background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.10)', overflow: 'hidden',
+                  }}>
+                    {suggestions.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={() => selectCustomer(c)}
+                        style={{
+                          width: '100%', textAlign: 'left',
+                          padding: '0.75rem 1rem', background: 'none', border: 'none',
+                          cursor: 'pointer', borderBottom: '1px solid var(--border)',
+                          display: 'flex', flexDirection: 'column', gap: '0.125rem',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-subtle)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                      >
+                        <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)' }}>{c.name}</span>
+                        {c.phone && <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{c.phone}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div>
-            <label className="form-label">Téléphone</label>
-            <input type="tel" name="customer_phone" className="form-input" placeholder="+228 XX XX XX XX" value={formData.customer_phone} onChange={handleChange} disabled={unknownClient} />
-          </div>
+              <div>
+                <label className="form-label">Téléphone</label>
+                <input type="tel" name="customer_phone" className="form-input" placeholder="+228 XX XX XX XX" value={formData.customer_phone} onChange={handleChange} />
+              </div>
+            </>
+          )}
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', userSelect: 'none' }}>
             <input
               type="checkbox"
