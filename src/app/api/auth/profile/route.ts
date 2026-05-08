@@ -118,7 +118,7 @@ export async function GET() {
 
     const { data: admin, error } = await supabase
       .from('admins')
-      .select('username, display_name')
+      .select('username, display_name, role')
       .eq('id', session.id)
       .single()
 
@@ -129,6 +129,7 @@ export async function GET() {
     return NextResponse.json({
       username: admin.username,
       displayName: admin.display_name || admin.username,
+      role: admin.role || 'admin',
     })
   } catch (err) {
     console.error('[profile GET]', err)

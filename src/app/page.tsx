@@ -9,7 +9,15 @@ export default function EntryPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{ packages: any[]; customers: any[] }>({ packages: [], customers: [] });
   const [searching, setSearching] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/profile')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.role === 'superadmin') setIsSuperAdmin(true) })
+      .catch(() => {})
+  }, []);
 
   useEffect(() => {
     if (query.length < 2) { setResults({ packages: [], customers: [] }); return; }
@@ -241,7 +249,7 @@ export default function EntryPage() {
           </Link>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+        {isSuperAdmin && <div style={{ textAlign: 'center', marginTop: '2rem' }}>
           <Link
             href="/admin"
             style={{
@@ -260,7 +268,7 @@ export default function EntryPage() {
           >
             admin
           </Link>
-        </div>
+        </div>}
 
         <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
           © 2026 Hamid Cargo Logistics

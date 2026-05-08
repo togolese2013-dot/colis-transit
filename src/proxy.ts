@@ -24,6 +24,12 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
+    // Old token without role — force re-login to get fresh token
+    if (!session.role) {
+      const loginUrl = new URL('/login', req.url)
+      return NextResponse.redirect(loginUrl)
+    }
+
     // /admin reserved for superadmin only
     if (pathname.startsWith('/admin') && session.role !== 'superadmin') {
       return NextResponse.redirect(new URL('/chine', req.url))
