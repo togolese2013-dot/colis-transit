@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-// Composant interne pour gérer useSearchParams
 const TrackContent = () => {
   const searchParams = useSearchParams();
   const [trackingNumber, setTrackingNumber] = useState(searchParams.get("id") || "");
@@ -38,7 +37,7 @@ const TrackContent = () => {
         .eq("tracking_number", trackingNumber.trim().toUpperCase())
         .single();
 
-      if (error) throw new Error("Colis non trouvé. Vérifiez le numéro.");
+      if (error) throw new Error("Colis non trouvé.");
       setPackageData(data);
     } catch (err: any) {
       setError(err.message);
@@ -48,170 +47,101 @@ const TrackContent = () => {
   };
 
   useEffect(() => {
-    if (searchParams.get("id")) {
-      handleTrack();
-    }
+    if (searchParams.get("id")) handleTrack();
   }, []);
 
-  // Calcul du prix
   const calculatePrice = (pkg: any) => {
     if (!pkg.weight_kg) return null;
     const rate = pkg.shipping_type === "EXPRESS" ? 13000 : 10000;
     return pkg.weight_kg * rate;
   };
 
+  // Liste des photos (soit photo_urls, soit l'ancienne photo_url seule)
+  const allPhotos = packageData?.photo_urls && packageData.photo_urls.length > 0 
+    ? packageData.photo_urls 
+    : (packageData?.photo_url ? [packageData.photo_url] : []);
+
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
       <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <h1 style={{ color: 'var(--primary)', fontSize: '2rem', fontWeight: '800' }}>Hamid Cargo</h1>
-        <p style={{ color: '#64748b' }}>Suivi de colis en temps réel</p>
+        <p style={{ color: '#64748b' }}>Suivi de colis international</p>
       </header>
 
       <form onSubmit={handleTrack} style={{ marginBottom: '2rem' }}>
         <div style={{ position: 'relative' }}>
           <input
             type="text"
-            placeholder="Entrez votre numéro de tracking (ex: JT...)"
+            placeholder="Numéro de tracking..."
             value={trackingNumber}
             onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
-            style={{
-              width: '100%',
-              padding: '18px 24px',
-              borderRadius: '16px',
-              border: '2px solid #e2e8f0',
-              fontSize: '1.1rem',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-            }}
+            style={{ width: '100%', padding: '18px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '1.1rem', outline: 'none' }}
           />
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              position: 'absolute',
-              right: '8px',
-              top: '8px',
-              bottom: '8px',
-              padding: '0 24px',
-              background: 'var(--primary)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-          >
+          <button type="submit" disabled={loading} style={{ position: 'absolute', right: '8px', top: '8px', bottom: '8px', padding: '0 20px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>
             {loading ? "..." : "SUIVRE"}
           </button>
         </div>
       </form>
 
-      {error && (
-        <div style={{ background: '#fff1f2', color: '#e11d48', padding: '1.5rem', borderRadius: '16px', textAlign: 'center', marginBottom: '2rem' }}>
-          {error}
-        </div>
-      )}
+      {error && <div style={{ background: '#fff1f2', color: '#e11d48', padding: '1.5rem', borderRadius: '16px', textAlign: 'center' }}>{error}</div>}
 
       {packageData && (
-        <div className="track-result" style={{ 
-          background: 'white', 
-          borderRadius: '24px', 
-          boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-          padding: '24px',
-          border: '1px solid #f1f5f9'
-        }}>
-          {/* Status Badge */}
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <span style={{
-              background: getStatusLabel(packageData.status).bg,
-              color: getStatusLabel(packageData.status).color,
-              padding: '8px 20px',
-              borderRadius: '20px',
-              fontWeight: '700',
-              fontSize: '0.9rem',
-              display: 'inline-block'
-            }}>
+        <div style={{ background: 'white', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', padding: '24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <span style={{ background: getStatusLabel(packageData.status).bg, color: getStatusLabel(packageData.status).color, padding: '8px 20px', borderRadius: '20px', fontWeight: '700' }}>
               {getStatusLabel(packageData.status).text}
             </span>
-            <h2 style={{ marginTop: '1rem', fontSize: '1.4rem', fontWeight: '800' }}>{packageData.tracking_number}</h2>
+            <h2 style={{ marginTop: '1rem', fontSize: '1.5rem', fontWeight: '900' }}>{packageData.tracking_number}</h2>
           </div>
 
-          {/* Photo du Colis */}
-          {packageData.photo_url && (
-            <div style={{ marginBottom: '2rem', borderRadius: '16px', overflow: 'hidden', border: '1px solid #eee' }}>
-              <img src={packageData.photo_url} alt="Photo du colis" style={{ width: '100%', display: 'block' }} />
+          {/* GALERIE PHOTOS CLIENT */}
+          {allPhotos.length > 0 && (
+            <div style={{ marginBottom: '2rem' }}>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px', fontWeight: '600' }}>Photos du colis ({allPhotos.length})</p>
+              <div style={{ display: 'grid', gridTemplateColumns: allPhotos.length > 1 ? '1fr 1fr' : '1fr', gap: '10px' }}>
+                {allPhotos.map((url: string, index: number) => (
+                  <div key={index} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
+                    <img src={url} alt={`Photo ${index + 1}`} style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Informations détaillées */}
-          <div style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              <span style={{ color: '#64748b' }}>Destinataire</span>
-              <span style={{ fontWeight: '600' }}>{packageData.customer_name || 'Non renseigné'}</span>
+          <div style={{ display: 'grid', gap: '0.8rem', marginBottom: '2rem', padding: '15px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#64748b' }}>Client</span>
+              <span style={{ fontWeight: '600' }}>{packageData.customer_name || '-'}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: '#64748b' }}>Poids</span>
-              <span style={{ fontWeight: '600' }}>{packageData.weight_kg ? `${packageData.weight_kg} kg` : 'En attente'}</span>
+              <span style={{ fontWeight: '600' }}>{packageData.weight_kg ? `${packageData.weight_kg} kg` : '-'}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              <span style={{ color: '#64748b' }}>Type d'envoi</span>
-              <span style={{ fontWeight: '600', color: packageData.shipping_type === 'EXPRESS' ? '#ef4444' : '#000' }}>
-                {packageData.shipping_type === 'EXPRESS' ? 'EXPRESS 🚀' : 'ORDINAIRE'}
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#64748b' }}>Type</span>
+              <span style={{ fontWeight: '600' }}>{packageData.shipping_type}</span>
             </div>
           </div>
 
-          {/* Montant à payer */}
           {packageData.weight_kg && (
-            <div style={{ 
-              background: 'var(--primary-light)', 
-              padding: '20px', 
-              borderRadius: '16px', 
-              textAlign: 'center',
-              border: '1px solid var(--primary)'
-            }}>
-              <p style={{ color: 'var(--primary)', fontSize: '0.9rem', fontWeight: '600', marginBottom: '5px' }}>Total à payer</p>
-              <h3 style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--primary)' }}>
-                {calculatePrice(packageData)?.toLocaleString()} FCFA
-              </h3>
-              <p style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '5px' }}>
-                Tarif : {packageData.shipping_type === 'EXPRESS' ? '13 000' : '10 000'} FCFA / kg
-              </p>
+            <div style={{ background: 'var(--primary-light)', padding: '20px', borderRadius: '20px', textAlign: 'center', border: '2px solid var(--primary)' }}>
+              <p style={{ color: 'var(--primary)', fontWeight: '700' }}>Total à payer</p>
+              <h3 style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--primary)' }}>{calculatePrice(packageData)?.toLocaleString()} FCFA</h3>
             </div>
           )}
-
-          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-            <p style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Mis à jour le {new Date(packageData.created_at).toLocaleDateString()}</p>
-          </div>
         </div>
       )}
 
-      <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-        <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>© 2026 Hamid Cargo Logistics — Chine & Togo</p>
-      </div>
-
       <style jsx global>{`
-        :root {
-          --primary: #FF6600;
-          --primary-light: #FFF5F0;
-        }
-        body {
-          background-color: #f8fafc;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+        :root { --primary: #FF6600; --primary-light: #FFF5F0; }
+        body { background-color: #f8fafc; font-family: sans-serif; }
       `}</style>
     </div>
   );
 };
 
-// Composant principal avec Suspense
-const TrackPage = () => {
-  return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>}>
-      <TrackContent />
-    </Suspense>
-  );
-};
+const TrackPage = () => (
+  <Suspense fallback={<div>Chargement...</div>}><TrackContent /></Suspense>
+);
 
 export default TrackPage;

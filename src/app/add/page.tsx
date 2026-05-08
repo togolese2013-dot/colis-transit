@@ -39,13 +39,6 @@ const Icons = {
       <line x1="5" y1="12" x2="19" y2="12"></line>
     </svg>
   ),
-  BarChart: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="20" x2="12" y2="10"></line>
-      <line x1="18" y1="20" x2="18" y2="4"></line>
-      <line x1="6" y1="20" x2="6" y2="16"></line>
-    </svg>
-  ),
   FileText: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -54,19 +47,10 @@ const Icons = {
       <line x1="16" y1="17" x2="8" y2="17"></line>
     </svg>
   ),
-  Weight: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2v20"></path>
-      <path d="M5 12h14"></path>
-      <rect x="5" y="5" width="14" height="14" rx="2"></rect>
-    </svg>
-  ),
-  Truck: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="3" width="15" height="13"></rect>
-      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-      <circle cx="5.5" cy="18.5" r="2.5"></circle>
-      <circle cx="18.5" cy="18.5" r="2.5"></circle>
+  Trash: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
   )
 };
@@ -75,11 +59,12 @@ const AddPackage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   
   const excelInputRef = useRef<HTMLInputElement>(null);
   const photoScanRef = useRef<HTMLInputElement>(null);
+  const multiPhotoInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [formData, setFormData] = useState({
@@ -111,43 +96,6 @@ const AddPackage = () => {
     setFormData(prev => ({ ...prev, tracking_number: text.toUpperCase() }));
     setLoading(false);
   };
-
-  const handleExcelImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLoading(true);
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const dataBuffer = evt.target?.result;
-        const wb = XLSX.read(dataBuffer, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(ws);
-
-        const packagesToInsert = data.map((row: any) => ({
-          tracking_number: String(row.tracking_number || row["N° Suivi"] || row.Tracking || "").trim(),
-          customer_name: String(row.customer_name || row.Nom || row.Client || "").trim(),
-          customer_phone: String(row.customer_phone || row.Telephone || row.Tel || "").trim(),
-          weight_kg: row.weight_kg || row.Poids || null,
-          shipping_type: (row.shipping_type || row.Type || "ORDINAIRE").toUpperCase(),
-          status: "RECU_CHINE",
-          created_at: new Date().toISOString(),
-        })).filter(p => p.tracking_number);
-
-        const { error } = await supabase.from("packages").insert(packagesToInsert);
-        if (error) throw error;
-
-        alert(`${packagesToInsert.length} colis importés avec succès !`);
-        router.push("/chine");
-      } catch (err: any) {
-        alert("Erreur Excel : " + err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }, [router]);
 
   const handlePhotoScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -212,6 +160,21 @@ const AddPackage = () => {
     }
   };
 
+  const handleMultiPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setPhotos(prev => [...prev, ...newFiles]);
+      
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+      setPreviews(prev => [...prev, ...newPreviews]);
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ 
@@ -220,32 +183,37 @@ const AddPackage = () => {
     }));
   }, []);
 
-  const handlePhotoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhoto(file);
-      setPreview(URL.createObjectURL(file));
-    }
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    let photo_url = null;
+    setError(null);
+
+    const uploadedUrls: string[] = [];
+
     try {
-      if (photo) {
-        const fileName = `${Date.now()}.${photo.name.split('.').pop()}`;
-        await supabase.storage.from('packages').upload(fileName, photo);
-        photo_url = supabase.storage.from('packages').getPublicUrl(fileName).data.publicUrl;
+      // Upload de toutes les photos
+      for (const photoFile of photos) {
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${photoFile.name.split('.').pop()}`;
+        const { error: uploadError } = await supabase.storage.from('packages').upload(fileName, photoFile);
+        if (uploadError) throw uploadError;
+        
+        const { data } = supabase.storage.from('packages').getPublicUrl(fileName);
+        uploadedUrls.push(data.publicUrl);
       }
+
       const { error } = await supabase.from('packages').insert([{ 
         ...formData, 
-        photo_url,
+        photo_url: uploadedUrls[0] || null, // On garde l'ancienne colonne pour compatibilité
+        photo_urls: uploadedUrls, // Nouveau tableau
         weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null 
       }]);
+
       if (error) throw error;
       router.push("/chine");
-    } catch (err: any) { setError(err.message); setLoading(false); }
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
   };
 
   return (
@@ -255,8 +223,6 @@ const AddPackage = () => {
           <button className="back-btn" onClick={() => router.push("/chine")} type="button" style={{ color: 'white' }}><Icons.Back /></button>
           <h1 style={{ fontSize: '1.1rem', color: 'white' }}>Nouveau Colis</h1>
         </div>
-        <button type="button" onClick={() => excelInputRef.current?.click()} className="btn-icon" style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '10px' }}><Icons.FileText /></button>
-        <input type="file" ref={excelInputRef} style={{ display: 'none' }} accept=".xlsx, .xls, .csv" onChange={handleExcelImport} />
       </header>
 
       <canvas ref={canvasRef} style={{ display: 'none' }} />
@@ -264,18 +230,34 @@ const AddPackage = () => {
       <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
         {error && <div style={{ background: '#fff0f0', color: '#d00', padding: '1rem', borderRadius: '12px', marginBottom: '1rem' }}>⚠️ {error}</div>}
         
-        <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '1.5rem' }}>
-          <button type="button" onClick={() => photoScanRef.current?.click()} disabled={loading} style={{ flex: 2, height: '120px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
-            {loading ? <span className="loader"></span> : <><Icons.Scan /><span style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>SCANNER</span></>}
-          </button>
-          <input type="file" ref={photoScanRef} accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhotoScan} />
+        {/* SECTION SCAN ET PHOTOS MULTIPLES */}
+        <div style={{ background: 'white', padding: '1.2rem', borderRadius: '24px', marginBottom: '1.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+            <button type="button" onClick={() => photoScanRef.current?.click()} disabled={loading} style={{ flex: 1.5, height: '110px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '18px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
+              {loading ? <span className="loader"></span> : <><Icons.Scan /><span style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>SCANNER TRACKING</span></>}
+            </button>
+            <input type="file" ref={photoScanRef} accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhotoScan} />
 
-          <div style={{ flex: 1, height: '120px', background: 'white', borderRadius: '20px', overflow: 'hidden', border: '1px solid #eee' }}>
-            <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={{ display: 'none' }} id="photo-p" />
-            <label htmlFor="photo-p" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              {preview ? <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <><Icons.Camera /><span style={{ fontSize: '0.6rem' }}>Photo</span></>}
-            </label>
+            <button type="button" onClick={() => multiPhotoInputRef.current?.click()} style={{ flex: 1, height: '110px', background: '#f8f9fa', color: 'var(--primary)', border: '2px dashed var(--primary)', borderRadius: '18px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <Icons.Camera />
+              <span style={{ fontSize: '0.7rem', marginTop: '0.4rem', fontWeight: 'bold' }}>+ PHOTOS</span>
+            </button>
+            <input type="file" ref={multiPhotoInputRef} accept="image/*" capture="environment" multiple style={{ display: 'none' }} onChange={handleMultiPhotoChange} />
           </div>
+
+          {/* GALERIE D'APERÇU */}
+          {previews.length > 0 && (
+            <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px' }}>
+              {previews.map((src, index) => (
+                <div key={index} style={{ position: 'relative', flex: '0 0 80px', height: '80px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #eee' }}>
+                  <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button type="button" onClick={() => removePhoto(index)} style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(255,0,0,0.8)', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icons.Trash />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="form-group">
@@ -283,54 +265,43 @@ const AddPackage = () => {
           <input type="text" name="tracking_number" className="form-input" placeholder="Tapez ou scannez..." value={formData.tracking_number} onChange={handleChange} required style={{ fontSize: '1.3rem', fontWeight: '800', textAlign: 'center', border: '2px solid var(--primary)', borderRadius: '12px' }} />
         </div>
 
-        {/* SECTION CLIENT (NOM ET TEL) AVANT POIDS */}
         <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '16px', marginBottom: '1rem' }}>
           <div className="form-group">
-            <label className="form-label">Nom du client</label>
-            <input type="text" name="customer_name" className="form-input" placeholder="Nom complet" value={formData.customer_name} onChange={handleChange} />
+            <input type="text" name="customer_name" className="form-input" placeholder="Nom du client" value={formData.customer_name} onChange={handleChange} />
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Téléphone</label>
-            <input type="tel" name="customer_phone" className="form-input" placeholder="+228..." value={formData.customer_phone} onChange={handleChange} />
+            <input type="tel" name="customer_phone" className="form-input" placeholder="Téléphone" value={formData.customer_phone} onChange={handleChange} />
           </div>
         </div>
 
-        {/* SECTION POIDS ET TYPE D'ENVOI */}
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
             <label className="form-label">Poids (kg)</label>
-            <div style={{ position: 'relative' }}>
-              <input type="number" step="0.01" name="weight_kg" className="form-input" placeholder="0.00" value={formData.weight_kg} onChange={handleChange} style={{ paddingLeft: '2.5rem' }} />
-              <div style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}><Icons.Weight /></div>
-            </div>
+            <input type="number" step="0.01" name="weight_kg" className="form-input" placeholder="0.00" value={formData.weight_kg} onChange={handleChange} />
           </div>
           <div className="form-group" style={{ flex: 1.2, marginBottom: 0 }}>
             <label className="form-label">Type d'envoi</label>
-            <div style={{ position: 'relative' }}>
-              <select name="shipping_type" className="form-input" value={formData.shipping_type} onChange={handleChange} style={{ paddingLeft: '2.5rem', appearance: 'none' }}>
-                <option value="ORDINAIRE">Ordinaire</option>
-                <option value="EXPRESS">Express 🚀</option>
-              </select>
-              <div style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}><Icons.Truck /></div>
-            </div>
+            <select name="shipping_type" className="form-input" value={formData.shipping_type} onChange={handleChange} style={{ appearance: 'none' }}>
+              <option value="ORDINAIRE">Ordinaire</option>
+              <option value="EXPRESS">Express 🚀</option>
+            </select>
           </div>
         </div>
 
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ height: '60px', borderRadius: '16px', fontWeight: 'bold' }}>
-          {loading ? "Chargement..." : "ENREGISTRER LE COLIS"}
+          {loading ? "Envoi des photos..." : "ENREGISTRER LE COLIS"}
         </button>
       </form>
 
       <nav className="bottom-nav">
         <Link href="/chine" className="nav-item"><Icons.Home /></Link>
         <Link href="/add" className="nav-item active" style={{ background: 'var(--primary)', color: 'white', marginTop: '-20px', height: '56px', width: '56px', borderRadius: '50%' }}><Icons.Plus /></Link>
-        <Link href="/stats" className="nav-item" style={{ opacity: 0.3 }}><Icons.Scan /></Link>
+        <div className="nav-item" style={{ opacity: 0.3 }}><Icons.Scan /></div>
       </nav>
 
       <style jsx>{`
         .loader { width: 24px; height: 24px; border: 3px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 1rem; }
       `}</style>
     </div>
   );
