@@ -87,6 +87,11 @@ export default function PackageHistory() {
         packagesRef.current = packagesRef.current.map(p => p.id === updated.id ? { ...p, ...updated } : p);
         setPackages([...packagesRef.current]);
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'packages' }, (payload) => {
+        const deletedId = (payload.old as any).id;
+        packagesRef.current = packagesRef.current.filter(p => p.id !== deletedId);
+        setPackages([...packagesRef.current]);
+      })
       .subscribe((status) => { console.log('[Chine Realtime]', status); });
 
     return () => { supabase.removeChannel(channel); };
@@ -128,19 +133,36 @@ export default function PackageHistory() {
     setIsUpdating(true);
     const { error } = await supabase.from('packages').update({ status: bulkStatus }).in('id', selectedIds);
     if (!error) {
-      setPackages(packages.map(p => selectedIds.includes(p.id) ? { ...p, status: bulkStatus } : p));
+      packagesRef.current = packagesRef.current.map(p => selectedIds.includes(p.id) ? { ...p, status: bulkStatus } : p);
+      setPackages([...packagesRef.current]);
       setSelectedIds([]);
       setIsSelectionMode(false);
     }
     setIsUpdating(false);
   };
 
+  const deletePhotosFromStorage = async (pkgList: any[]) => {
+    const paths: string[] = [];
+    const marker = '/object/public/packages/';
+    for (const pkg of pkgList) {
+      const urls: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0
+        ? pkg.photo_urls : pkg.photo_url ? [pkg.photo_url] : [];
+      for (const url of urls) {
+        const idx = url.indexOf(marker);
+        if (idx !== -1) paths.push(url.slice(idx + marker.length));
+      }
+    }
+    if (paths.length > 0) await supabase.storage.from('packages').remove(paths);
+  };
+
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     if (!confirm(`Supprimer ${selectedIds.length} colis ?`)) return;
     setIsUpdating(true);
+    const toDelete = packages.filter(p => selectedIds.includes(p.id));
     const { error } = await supabase.from('packages').delete().in('id', selectedIds);
     if (!error) {
+      await deletePhotosFromStorage(toDelete);
       const remaining = packages.filter(p => !selectedIds.includes(p.id));
       packagesRef.current = remaining;
       setPackages(remaining);

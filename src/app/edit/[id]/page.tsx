@@ -88,6 +88,23 @@ export default function EditPackage() {
     setSaving(false);
   };
 
+  const handleDelete = async () => {
+    if (!confirm(`Supprimer ce colis (${pkg.tracking_number}) ? Cette action est irréversible.`)) return;
+    setSaving(true);
+    const { error: delError } = await supabase.from('packages').delete().eq('id', id);
+    if (!delError) {
+      const urls: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0
+        ? pkg.photo_urls : pkg.photo_url ? [pkg.photo_url] : [];
+      const marker = '/object/public/packages/';
+      const paths = urls.map(u => { const i = u.indexOf(marker); return i !== -1 ? u.slice(i + marker.length) : null; }).filter(Boolean) as string[];
+      if (paths.length > 0) await supabase.storage.from('packages').remove(paths);
+      router.push("/chine");
+    } else {
+      alert("Erreur : " + delError.message);
+      setSaving(false);
+    }
+  };
+
   const lightboxPrev = () => setLightboxIndex(i => i !== null ? (i - 1 + photoUrls.length) % photoUrls.length : null);
   const lightboxNext = () => setLightboxIndex(i => i !== null ? (i + 1) % photoUrls.length : null);
 
@@ -352,6 +369,22 @@ export default function EditPackage() {
           {saving ? <><span className="spinner" />Mise à jour...</> : 'Enregistrer'}
         </button>
       </form>
+
+      {/* Delete */}
+      <div className="card" style={{ marginTop: '1rem', borderColor: 'var(--error-border)' }}>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={saving}
+          style={{
+            width: '100%', padding: '0.75rem', border: 'none', borderRadius: 'var(--r-lg)',
+            background: 'var(--error-subtle)', color: 'var(--error)',
+            fontWeight: '700', fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'var(--font)',
+          }}
+        >
+          Supprimer ce colis
+        </button>
+      </div>
 
       {/* Bottom Nav */}
       <nav className="bottom-nav">
