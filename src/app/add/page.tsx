@@ -118,22 +118,20 @@ const AddPackage = () => {
         uploadedUrls.push(data.publicUrl);
       }
 
-      const { error } = await supabase.from('packages').insert([{
-        ...formData,
-        customer_name: unknownClient ? null : (formData.customer_name || null),
-        customer_phone: unknownClient ? null : (formData.customer_phone || null),
-        photo_url: uploadedUrls[0] || null,
-        photo_urls: uploadedUrls,
-        weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
-      }]);
+      const res = await fetch('/api/packages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          photo_url: uploadedUrls[0] || null,
+          photo_urls: uploadedUrls,
+          unknown_client: unknownClient,
+        }),
+      });
 
-      if (error) throw error;
-
-      if (!unknownClient && formData.customer_name.trim()) {
-        await supabase.from('customers').upsert(
-          { name: formData.customer_name.trim(), phone: formData.customer_phone.trim() || null },
-          { onConflict: 'name' }
-        );
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Erreur serveur');
       }
 
       router.push("/chine");
