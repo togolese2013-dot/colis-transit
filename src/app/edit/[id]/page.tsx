@@ -350,7 +350,7 @@ export default function EditPackage() {
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={3}
-          style={{ resize: 'none', fontSize: '0.875rem', lineHeight: 1.5 }}
+          style={{ resize: 'none', fontSize: '16px', lineHeight: 1.5 }}
         />
       </div>
 

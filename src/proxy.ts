@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
-const PUBLIC_PATHS = ['/track', '/login']
+// Paths accessible without admin auth
+const PUBLIC_PATHS = ['/', '/track', '/login']
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const isPublic =
     PUBLIC_PATHS.includes(pathname) ||
+    pathname.startsWith('/client') ||         // client pages & API
+    pathname.startsWith('/api/client/') ||
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.ico'
@@ -32,7 +35,7 @@ export async function proxy(req: NextRequest) {
 
     // /admin reserved for superadmin only
     if (pathname.startsWith('/admin') && session.role !== 'superadmin') {
-      return NextResponse.redirect(new URL('/', req.url))
+      return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
     // /api/admin reserved for superadmin only
@@ -44,10 +47,10 @@ export async function proxy(req: NextRequest) {
     if (session.role !== 'superadmin') {
       const perms: string[] = Array.isArray(session.permissions) ? session.permissions : ['chine', 'lome']
       if (pathname.startsWith('/chine') && !perms.includes('chine')) {
-        return NextResponse.redirect(new URL('/', req.url))
+        return NextResponse.redirect(new URL('/dashboard', req.url))
       }
       if (pathname.startsWith('/lome') && !perms.includes('lome')) {
-        return NextResponse.redirect(new URL('/', req.url))
+        return NextResponse.redirect(new URL('/dashboard', req.url))
       }
     }
   } catch {

@@ -42,7 +42,8 @@ export default function LoginPage() {
 
       localStorage.setItem('hc_user', username.trim().toLowerCase())
       if (data.displayName) localStorage.setItem('hc_display_name', data.displayName)
-      router.push('/')
+      const redirect = new URLSearchParams(window.location.search).get('redirect')
+      router.push(redirect && redirect.startsWith('/') && !redirect.startsWith('/client') ? redirect : '/dashboard')
     } catch (err) {
       console.error(err)
       setError('Erreur réseau, veuillez réessayer')
@@ -208,7 +209,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '0 1rem 0 2.5rem',
     border: '1.5px solid var(--border)',
     borderRadius: 'var(--r-md)',
-    fontSize: '0.9375rem',
+    fontSize: '16px',
     color: 'var(--text-1)',
     background: 'var(--bg)',
     outline: 'none',

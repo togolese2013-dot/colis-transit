@@ -249,6 +249,6 @@ function StatusBox({ status }: { status: { type: 'success' | 'error'; message: s
 const inputStyle: React.CSSProperties = {
   width: '100%', height: '48px', padding: '0 1rem',
   border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
-  fontSize: '0.9375rem', color: 'var(--text-1)',
+  fontSize: '16px', color: 'var(--text-1)',
   background: 'var(--bg)', outline: 'none', fontFamily: 'var(--font)',
 }

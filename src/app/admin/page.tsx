@@ -171,7 +171,7 @@ export default function AdminPanel() {
       {/* Header */}
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button className="back-btn" onClick={() => router.push('/')} type="button">
+          <button className="back-btn" onClick={() => router.push('/dashboard')} type="button">
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
           <span className="page-title">Administration</span>
@@ -477,7 +477,7 @@ const labelStyle: React.CSSProperties = { fontSize: '0.8125rem', fontWeight: '60
 const inputStyle: React.CSSProperties = {
   width: '100%', height: '44px', padding: '0 1rem',
   border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
-  fontSize: '0.9375rem', color: 'var(--text-1)',
+  fontSize: '16px', color: 'var(--text-1)',
   background: 'var(--bg)', outline: 'none', fontFamily: 'var(--font)',
 }
 

@@ -445,9 +445,9 @@ export default function PackageHistory() {
         <div>
           <label className="form-label" style={{ marginBottom: '0.625rem' }}>Poids (kg)</label>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <input type="number" className="form-input" placeholder="Min" value={filterWeightMin} onChange={e => setFilterWeightMin(e.target.value)} style={{ flex: 1, fontSize: '0.875rem' }} step="0.1" min="0" />
+            <input type="number" className="form-input" placeholder="Min" value={filterWeightMin} onChange={e => setFilterWeightMin(e.target.value)} style={{ flex: 1, fontSize: '16px' }} step="0.1" min="0" />
             <span style={{ color: 'var(--text-3)', fontWeight: '600', flexShrink: 0 }}>→</span>
-            <input type="number" className="form-input" placeholder="Max" value={filterWeightMax} onChange={e => setFilterWeightMax(e.target.value)} style={{ flex: 1, fontSize: '0.875rem' }} step="0.1" min="0" />
+            <input type="number" className="form-input" placeholder="Max" value={filterWeightMax} onChange={e => setFilterWeightMax(e.target.value)} style={{ flex: 1, fontSize: '16px' }} step="0.1" min="0" />
           </div>
         </div>
       </div>
