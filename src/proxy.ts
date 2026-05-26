@@ -4,8 +4,16 @@ import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 // Paths accessible without admin auth
 const PUBLIC_PATHS = ['/', '/track', '/login']
 
+const APP_SUBDOMAIN = 'app.hamidcargo.com'
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+  const hostname = req.headers.get('host') ?? ''
+
+  // app.hamidcargo.com/ → redirect to /dashboard (admin entry)
+  if (hostname === APP_SUBDOMAIN && pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
+  }
 
   const isPublic =
     PUBLIC_PATHS.includes(pathname) ||
