@@ -12,7 +12,7 @@ export default function LandingPage() {
   function handleTrack(e: React.FormEvent) {
     e.preventDefault();
     const val = trackingInput.trim();
-    if (val) router.push(`/track?q=${encodeURIComponent(val)}`);
+    if (val) router.push(`/track?id=${encodeURIComponent(val.toUpperCase())}`);
   }
 
   return (
@@ -44,8 +44,8 @@ export default function LandingPage() {
             </button>
           </Link>
           <Link href="/client/register" style={{ textDecoration: 'none' }}>
-            <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', fontSize: '0.8125rem', fontWeight: '700', color: 'white', cursor: 'pointer', fontFamily: 'var(--font)' }}>
-              Mon compte
+            <button title="Mon compte" style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+              <User size={17} color="white" strokeWidth={2.5} />
             </button>
           </Link>
         </div>
@@ -112,19 +112,18 @@ export default function LandingPage() {
           <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ width: '44px', height: '44px', background: '#eff6ff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+                <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5s-2.5 0-4 1.5L13.5 8.5l-8.2-1.8c-.9-.2-1.8.1-2.4.7l-.5.5c-.4.4-.5 1-.2 1.4l7.2 3.6-3.6 7.2c-.4.4-.3 1 .1 1.4l.5.5c.6.6 1.5.9 2.4.7l8.2-1.8 3.5 3.5c1.5 1.5 3.5 1 4-.5s-.5-2.5-2-4l-3.5-3.5z" />
               </svg>
             </div>
             <div>
               <div style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--text-1)', marginBottom: '0.25rem' }}>Ordinaire</div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.5 }}>Transport maritime standard</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.5 }}>Transport par avion standard</div>
             </div>
             <div style={{ marginTop: 'auto' }}>
               <div style={{ fontSize: '1.375rem', fontWeight: '900', color: '#3b82f6', letterSpacing: '-0.02em' }}>10 000 <span style={{ fontSize: '0.8125rem', fontWeight: '600' }}>FCFA/kg</span></div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem' }}>
                 <Clock size={12} color="var(--text-3)" />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>25 – 35 jours</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>10 – 25 jours</span>
               </div>
             </div>
           </div>
@@ -145,7 +144,7 @@ export default function LandingPage() {
               <div style={{ fontSize: '1.375rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>13 000 <span style={{ fontSize: '0.8125rem', fontWeight: '600' }}>FCFA/kg</span></div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem' }}>
                 <Clock size={12} color="rgba(255,255,255,0.8)" />
-                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>15 – 20 jours</span>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>3 – 14 jours</span>
               </div>
             </div>
           </div>
@@ -163,7 +162,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
             {[
               { n: '1', title: 'Envoyez vos colis en Chine', desc: 'Déposez vos articles à notre entrepôt de Guangzhou. Nous les enregistrons avec photos.', icon: '📦' },
-              { n: '2', title: 'Transit & suivi en temps réel', desc: 'Suivez votre colis à chaque étape : Chine → En transit → Arrivé à Lomé.', icon: '🚢' },
+              { n: '2', title: 'Transit & suivi en temps réel', desc: 'Suivez votre colis à chaque étape : Chine → En transit → Arrivé à Lomé.', icon: '✈️' },
               { n: '3', title: 'Livraison à Lomé', desc: 'Récupérez votre colis à notre bureau ou optez pour la livraison à domicile.', icon: '✅' },
             ].map((step, i) => (
               <div key={step.n} style={{ display: 'flex', gap: '1rem', paddingBottom: i < 2 ? '1.5rem' : '0', position: 'relative' }}>

@@ -133,7 +133,7 @@ export default function ClientDashboard() {
               const photo = pkg.photo_urls?.[0] ?? pkg.photo_url
               const price = getPrice(pkg)
               return (
-                <Link key={pkg.id} href={`/track?q=${encodeURIComponent(pkg.tracking_number)}`} style={{ textDecoration: 'none' }}>
+                <Link key={pkg.id} href={`/track?id=${encodeURIComponent(pkg.tracking_number)}`} style={{ textDecoration: 'none' }}>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '20px', overflow: 'hidden', transition: 'box-shadow 0.15s' }}>
 
                     {/* Photo strip */}
