@@ -72,8 +72,12 @@ export default function LomeDashboard() {
   }
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase.from('packages').update({ status: newStatus }).eq('id', id);
-    if (!error) setPackages(packages.map(p => p.id === id ? { ...p, status: newStatus } : p));
+    const res = await fetch('/api/packages/status', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: newStatus }),
+    });
+    if (res.ok) setPackages(packages.map(p => p.id === id ? { ...p, status: newStatus } : p));
   };
 
   const filteredPackages = packages.filter(pkg => {
