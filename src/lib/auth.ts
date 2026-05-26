@@ -9,6 +9,7 @@ export interface AdminPayload {
   id: string
   username: string
   role: string
+  permissions?: string[]
   [key: string]: unknown
 }
 

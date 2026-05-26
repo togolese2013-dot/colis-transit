@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('admins')
-    .select('id, username, display_name, role, created_at')
+    .select('id, username, display_name, role, permissions, created_at')
     .order('created_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
-  const { username, password, displayName, role } = await req.json()
+  const { username, password, displayName, role, permissions } = await req.json()
 
   if (!username || !password) {
     return NextResponse.json({ error: 'Identifiant et mot de passe requis' }, { status: 400 })
@@ -52,8 +52,9 @@ export async function POST(req: NextRequest) {
       password_hash: hash,
       display_name: displayName?.trim() || null,
       role: role || 'admin',
+      permissions: permissions ?? ['chine', 'lome'],
     })
-    .select('id, username, display_name, role, created_at')
+    .select('id, username, display_name, role, permissions, created_at')
     .single()
 
   if (error) {
@@ -73,7 +74,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
-  const { id, displayName, role, newPassword } = await req.json()
+  const { id, displayName, role, newPassword, permissions } = await req.json()
   if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
 
   // Cannot demote yourself
@@ -84,6 +85,7 @@ export async function PUT(req: NextRequest) {
   const updates: Record<string, unknown> = {}
   if (displayName !== undefined) updates.display_name = displayName?.trim() || null
   if (role !== undefined) updates.role = role
+  if (permissions !== undefined) updates.permissions = permissions
   if (newPassword) {
     if (newPassword.length < 6) {
       return NextResponse.json({ error: 'Mot de passe trop court (min 6 caractères)' }, { status: 400 })
@@ -95,7 +97,7 @@ export async function PUT(req: NextRequest) {
     .from('admins')
     .update(updates)
     .eq('id', id)
-    .select('id, username, display_name, role, created_at')
+    .select('id, username, display_name, role, permissions, created_at')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

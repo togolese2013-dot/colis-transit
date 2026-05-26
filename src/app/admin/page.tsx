@@ -12,6 +12,7 @@ interface AdminUser {
   username: string
   display_name: string | null
   role: string
+  permissions: string[]
   created_at: string
 }
 
@@ -35,12 +36,12 @@ export default function AdminPanel() {
   const [usersStatus, setUsersStatus] = useState<Status>(null)
 
   // Create form
-  const [createForm, setCreateForm] = useState({ username: '', displayName: '', password: '', role: 'admin' })
+  const [createForm, setCreateForm] = useState({ username: '', displayName: '', password: '', role: 'admin', permissions: ['chine', 'lome'] as string[] })
   const [showCreatePwd, setShowCreatePwd] = useState(false)
   const [creating, setCreating] = useState(false)
 
   // Edit form
-  const [editForm, setEditForm] = useState({ displayName: '', role: 'admin', newPassword: '' })
+  const [editForm, setEditForm] = useState({ displayName: '', role: 'admin', newPassword: '', permissions: ['chine', 'lome'] as string[] })
   const [showEditPwd, setShowEditPwd] = useState(false)
   const [editing, setEditing] = useState(false)
 
@@ -83,7 +84,7 @@ export default function AdminPanel() {
       setUsersStatus({ type: 'error', message: data.error })
     } else {
       setUsers(u => [...u, data])
-      setCreateForm({ username: '', displayName: '', password: '', role: 'admin' })
+      setCreateForm({ username: '', displayName: '', password: '', role: 'admin', permissions: ['chine', 'lome'] })
       setShowCreate(false)
       setUsersStatus({ type: 'success', message: `Utilisateur "${data.username}" créé` })
     }
@@ -226,15 +227,28 @@ export default function AdminPanel() {
                     <div style={{ fontWeight: '700', fontSize: '0.9375rem', color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {user.display_name || user.username}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.125rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>{user.username}</span>
                       <span style={{ fontSize: '0.6875rem', fontWeight: '700', color: r.color, background: r.bg, border: `1px solid ${r.border}`, borderRadius: 'var(--r-full)', padding: '0.1rem 0.5rem' }}>{r.label}</span>
                     </div>
+                    {user.role !== 'superadmin' && (
+                      <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.375rem' }}>
+                        {[['chine', '🇨🇳 Chine', '#f97316', '#fff7ed', '#fed7aa'], ['lome', '🇹🇬 Togo', '#3b82f6', '#eff6ff', '#bfdbfe']].map(([key, label, color, bg, border]) => {
+                          const perms = user.permissions ?? ['chine', 'lome']
+                          const active = perms.includes(key)
+                          return (
+                            <span key={key} style={{ fontSize: '0.625rem', fontWeight: '700', borderRadius: 'var(--r-full)', padding: '0.15rem 0.5rem', border: `1px solid ${active ? border : 'var(--border)'}`, background: active ? bg : 'var(--bg-subtle)', color: active ? color : 'var(--text-3)', letterSpacing: '0.03em' }}>
+                              {label}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                   {/* Actions */}
                   <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
                     <button
-                      onClick={() => { setEditUser(user); setEditForm({ displayName: user.display_name || '', role: user.role, newPassword: '' }); setUsersStatus(null) }}
+                      onClick={() => { setEditUser(user); setEditForm({ displayName: user.display_name || '', role: user.role, newPassword: '', permissions: user.permissions ?? ['chine', 'lome'] }); setUsersStatus(null) }}
                       style={iconBtn}
                       title="Modifier"
                     >
@@ -291,6 +305,12 @@ export default function AdminPanel() {
                     <option value="superadmin">Super Admin</option>
                   </select>
                 </div>
+                {createForm.role !== 'superadmin' && (
+                  <PermissionToggle
+                    permissions={createForm.permissions}
+                    onChange={p => setCreateForm(f => ({ ...f, permissions: p }))}
+                  />
+                )}
                 <button type="submit" disabled={creating} className="btn btn-primary btn-full" style={{ opacity: creating ? 0.7 : 1 }}>
                   {creating ? 'Création…' : 'Créer'}
                 </button>
@@ -319,6 +339,12 @@ export default function AdminPanel() {
                       <option value="disabled">Désactivé</option>
                     </select>
                   </div>
+                  {editForm.role !== 'superadmin' && editForm.role !== 'disabled' && (
+                    <PermissionToggle
+                      permissions={editForm.permissions}
+                      onChange={p => setEditForm(f => ({ ...f, permissions: p }))}
+                    />
+                  )}
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem' }}>
                     <PwdField label="Nouveau mot de passe (optionnel)" value={editForm.newPassword} show={showEditPwd} onToggle={() => setShowEditPwd(v => !v)} onChange={v => setEditForm(f => ({ ...f, newPassword: v }))} hint="Laisser vide pour ne pas changer" required={false} />
                   </div>
@@ -460,4 +486,42 @@ const iconBtn: React.CSSProperties = {
   border: '1px solid var(--border)', background: 'var(--bg-subtle)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer',
+}
+
+function PermissionToggle({ permissions, onChange }: { permissions: string[]; onChange: (p: string[]) => void }) {
+  const sections = [
+    { key: 'chine', label: 'Espace Chine', emoji: '🇨🇳', color: '#f97316', bg: '#fff7ed', border: '#fed7aa' },
+    { key: 'lome',  label: 'Espace Togo',  emoji: '🇹🇬', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+  ]
+  function toggle(key: string) {
+    onChange(permissions.includes(key) ? permissions.filter(p => p !== key) : [...permissions, key])
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+      <label style={labelStyle}>Accès aux sections</label>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {sections.map(({ key, label, emoji, color, bg, border }) => {
+          const active = permissions.includes(key)
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => toggle(key)}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem',
+                height: '44px', borderRadius: 'var(--r-md)', cursor: 'pointer', fontWeight: '700',
+                fontSize: '0.8125rem', transition: 'all 0.15s',
+                border: `1.5px solid ${active ? border : 'var(--border)'}`,
+                background: active ? bg : 'var(--bg-subtle)',
+                color: active ? color : 'var(--text-3)',
+              }}
+            >
+              <span>{emoji}</span> {label}
+              {active && <Check size={13} color={color} strokeWidth={3} />}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }

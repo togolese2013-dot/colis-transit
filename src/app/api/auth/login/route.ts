@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     const { data: admin, error } = await supabase
       .from('admins')
-      .select('id, username, password_hash, role, display_name')
+      .select('id, username, password_hash, role, display_name, permissions')
       .eq('username', username.trim().toLowerCase())
       .single()
 
@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ce compte a été désactivé' }, { status: 403 })
     }
 
-    const token = await signToken({ id: admin.id, username: admin.username, role: admin.role || 'admin' })
+    const permissions: string[] = admin.role === 'superadmin'
+      ? ['chine', 'lome']
+      : (admin.permissions ?? ['chine', 'lome'])
+    const token = await signToken({ id: admin.id, username: admin.username, role: admin.role || 'admin', permissions })
 
     const res = NextResponse.json({
       success: true,
