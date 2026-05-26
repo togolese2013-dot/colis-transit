@@ -118,7 +118,7 @@ export async function GET() {
 
     const { data: admin, error } = await supabase
       .from('admins')
-      .select('username, display_name, role')
+      .select('username, display_name, role, permissions')
       .eq('id', session.id)
       .single()
 
@@ -126,10 +126,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Introuvable' }, { status: 404 })
     }
 
+    const permissions: string[] = admin.role === 'superadmin'
+      ? ['chine', 'lome']
+      : (admin.permissions ?? ['chine', 'lome'])
+
     return NextResponse.json({
       username: admin.username,
       displayName: admin.display_name || admin.username,
       role: admin.role || 'admin',
+      permissions,
     })
   } catch (err) {
     console.error('[profile GET]', err)

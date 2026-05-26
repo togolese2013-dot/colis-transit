@@ -10,12 +10,17 @@ export default function EntryPage() {
   const [results, setResults] = useState<{ packages: any[]; customers: any[] }>({ packages: [], customers: [] });
   const [searching, setSearching] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/auth/profile')
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.role === 'superadmin') setIsSuperAdmin(true) })
+      .then(data => {
+        if (!data) return
+        if (data.role === 'superadmin') setIsSuperAdmin(true)
+        setPermissions(data.permissions ?? ['chine', 'lome'])
+      })
       .catch(() => {})
   }, []);
 
@@ -194,7 +199,7 @@ export default function EntryPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
 
           {/* Espace Chine */}
-          <Link href="/chine" style={{ textDecoration: 'none' }}>
+          {(permissions === null || permissions.includes('chine')) && <Link href="/chine" style={{ textDecoration: 'none' }}>
             <div style={{
               background: 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
               padding: '1.5rem', borderRadius: '20px', color: 'white',
@@ -217,10 +222,10 @@ export default function EntryPage() {
                 <ArrowRight size={18} strokeWidth={2.5} />
               </div>
             </div>
-          </Link>
+          </Link>}
 
           {/* Espace Togo */}
-          <Link href="/lome" style={{ textDecoration: 'none' }}>
+          {(permissions === null || permissions.includes('lome')) && <Link href="/lome" style={{ textDecoration: 'none' }}>
             <div style={{
               background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
               padding: '1.5rem', borderRadius: '20px', color: 'white',
@@ -246,7 +251,7 @@ export default function EntryPage() {
                 <ArrowRight size={18} strokeWidth={2.5} />
               </div>
             </div>
-          </Link>
+          </Link>}
         </div>
 
         {isSuperAdmin && <div style={{ textAlign: 'center', marginTop: '2rem' }}>
