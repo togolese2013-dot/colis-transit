@@ -238,9 +238,11 @@ export default function LandingPage() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
           <Link href="/track" style={{ fontSize: '0.75rem', color: 'var(--text-3)', textDecoration: 'none' }}>Suivre un colis</Link>
           <Link href="/client/login" style={{ fontSize: '0.75rem', color: 'var(--text-3)', textDecoration: 'none' }}>Espace client</Link>
-          <Link href="/login" style={{ fontSize: '0.75rem', color: 'var(--text-3)', textDecoration: 'none' }}>Admin</Link>
         </div>
-        <p style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginTop: '0.75rem' }}>© 2026 Hamid Cargo Logistics</p>
+        <p style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginTop: '0.75rem' }}>
+          © 2026 Hamid Cargo Logistics
+          {/* Admin access: hamidcargo.com/login */}
+        </p>
       </footer>
 
     </div>
