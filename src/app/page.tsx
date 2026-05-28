@@ -27,16 +27,7 @@ export default function LandingPage() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         height: '56px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-          <div style={{ width: '32px', height: '32px', background: 'var(--accent)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
-          </div>
-          <span style={{ fontWeight: '800', fontSize: '1.0625rem', color: 'var(--text-1)', letterSpacing: '-0.02em' }}>Hamid Cargo</span>
-        </div>
+        <img src="/logo.svg" width={190} height={36} alt="Hamid Cargo" style={{ display: 'block' }} />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Link href="/client/login" style={{ textDecoration: 'none' }}>
             <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
@@ -228,11 +219,8 @@ export default function LandingPage() {
 
       {/* ── FOOTER ── */}
       <footer style={{ borderTop: '1px solid var(--border)', padding: '1.5rem', textAlign: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-          <div style={{ width: '24px', height: '24px', background: 'var(--accent)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Package size={14} color="white" />
-          </div>
-          <span style={{ fontWeight: '800', fontSize: '0.9375rem', color: 'var(--text-1)' }}>Hamid Cargo</span>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+          <img src="/logo.svg" width={170} height={33} alt="Hamid Cargo" style={{ display: 'block' }} />
         </div>
         <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.5rem' }}>Envoi de colis · Chine &amp; Togo</p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>

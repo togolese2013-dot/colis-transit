@@ -77,22 +77,9 @@ export default function AdminHome() {
 
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            width: '56px', height: '56px', borderRadius: '16px',
-            background: 'var(--accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.25rem', color: 'white',
-            boxShadow: '0 8px 24px rgba(249,115,22,0.28)',
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+            <img src="/logo.svg" width={220} height={44} alt="Hamid Cargo" style={{ display: 'block' }} />
           </div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', letterSpacing: '-0.03em', color: 'var(--text-1)', marginBottom: 0 }}>
-            Hamid Cargo
-          </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-3)', fontWeight: '500' }}>
             Envoi de colis · Chine &amp; Togo
           </p>

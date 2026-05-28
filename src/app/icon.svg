@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" fill="none">
+  <!-- Orange bg -->
+  <rect width="50" height="50" rx="11" fill="#f97316"/>
+
+  <!-- Package box -->
+  <rect x="7" y="22" width="26" height="19" rx="2.5" stroke="white" stroke-width="2"/>
+  <line x1="7" y1="28" x2="33" y2="28" stroke="white" stroke-width="1.5"/>
+  <line x1="20" y1="22" x2="20" y2="41" stroke="white" stroke-width="1.5"/>
+
+  <!-- Airplane (top-down, pointing NE) -->
+  <g transform="translate(37,11) rotate(45) scale(0.65)">
+    <path d="M0,-6 L1.5,-1 L7,2 L6.5,3.5 L1.5,1.5 L2,5 L1.2,5.5 L0,4.5 L-1.2,5.5 L-2,5 L-1.5,1.5 L-6.5,3.5 L-7,2 L-1.5,-1 Z" fill="white"/>
+  </g>
+
+  <!-- Dotted route arc -->
+  <path d="M20 22 Q29 13 36 11" fill="none" stroke="white" stroke-width="1.2" stroke-dasharray="2,2.5" opacity="0.65"/>
+</svg>
