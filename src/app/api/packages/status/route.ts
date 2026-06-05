@@ -42,26 +42,25 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    // WhatsApp notification
-    let waResult = null
+    // WhatsApp notification — fire and forget
     if (pkg.customer_phone && pkg.customer_name) {
       if (status === 'EN_TRANSIT') {
-        waResult = await notifyClientEnTransit({
+        notifyClientEnTransit({
           phone: pkg.customer_phone,
           customerName: pkg.customer_name,
           trackingNumber: pkg.tracking_number,
-        }).catch(err => ({ ok: false, error: String(err) }))
+        }).catch(err => console.error('[whatsapp] en_transit failed:', err))
       }
       if (status === 'ARRIVE_LOME') {
-        waResult = await notifyClientArriveLome({
+        notifyClientArriveLome({
           phone: pkg.customer_phone,
           customerName: pkg.customer_name,
           trackingNumber: pkg.tracking_number,
-        }).catch(err => ({ ok: false, error: String(err) }))
+        }).catch(err => console.error('[whatsapp] arrive_lome failed:', err))
       }
     }
 
-    return NextResponse.json({ success: true, wa: waResult })
+    return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[PUT /api/packages/status]', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
