@@ -177,8 +177,12 @@ export default function PackageHistory() {
   const handleSendInTransit = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    const { error } = await supabase.from('packages').update({ status: 'EN_TRANSIT' }).eq('id', id);
-    if (!error) setPackages(packages.map(p => p.id === id ? { ...p, status: 'EN_TRANSIT' } : p));
+    const res = await fetch('/api/packages/status', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: 'EN_TRANSIT' }),
+    });
+    if (res.ok) setPackages(packages.map(p => p.id === id ? { ...p, status: 'EN_TRANSIT' } : p));
   };
 
   const toggleFilter = (filter: string) => {
