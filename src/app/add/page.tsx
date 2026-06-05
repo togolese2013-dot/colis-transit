@@ -323,6 +323,7 @@ const AddPackage = () => {
             <select name="shipping_type" className="form-input form-select" value={formData.shipping_type} onChange={handleChange}>
               <option value="ORDINAIRE">Ordinaire</option>
               <option value="EXPRESS">Express 🚀</option>
+              <option value="COLIS_BATTERIE">Colis Batterie 🔋</option>
             </select>
           </div>
         </div>

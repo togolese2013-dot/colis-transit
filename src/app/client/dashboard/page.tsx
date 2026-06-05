@@ -24,7 +24,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   LIVRE:       { label: 'Livré',            color: '#10b981', bg: '#d1fae5', border: '#a7f3d0', step: 4 },
 }
 
-const PRICE_MAP: Record<string, number> = { ORDINAIRE: 10000, EXPRESS: 13000 }
+const PRICE_MAP: Record<string, number> = { ORDINAIRE: 10000, EXPRESS: 13000, COLIS_BATTERIE: 11000 }
 
 export default function ClientDashboard() {
   const router = useRouter()
@@ -177,7 +177,7 @@ export default function ClientDashboard() {
                           )}
                           {pkg.shipping_type && (
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontWeight: '600', textTransform: 'capitalize' }}>
-                              {pkg.shipping_type === 'EXPRESS' ? '⚡ Express' : '🚢 Ordinaire'}
+                              {pkg.shipping_type === 'EXPRESS' ? '⚡ Express' : pkg.shipping_type === 'COLIS_BATTERIE' ? '🔋 Colis Batterie' : '🚢 Ordinaire'}
                             </span>
                           )}
                           {price && (

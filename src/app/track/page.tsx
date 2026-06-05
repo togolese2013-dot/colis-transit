@@ -128,7 +128,7 @@ const TrackContent = () => {
 
   const calculatePrice = (pkg: any) => {
     if (!pkg?.weight_kg) return null;
-    const rate = pkg.shipping_type === "EXPRESS" ? 13000 : 10000;
+    const rate = pkg.shipping_type === "EXPRESS" ? 13000 : pkg.shipping_type === "COLIS_BATTERIE" ? 11000 : 10000;
     return pkg.weight_kg * rate;
   };
 
@@ -347,7 +347,7 @@ const TrackContent = () => {
                   { label: 'Client', value: packageData.customer_name || '—' },
                   { label: 'Téléphone', value: packageData.customer_phone || '—' },
                   { label: 'Poids', value: packageData.weight_kg ? `${packageData.weight_kg} kg` : '—' },
-                  { label: 'Service', value: packageData.shipping_type === 'EXPRESS' ? 'Express 🚀' : 'Ordinaire', accent: packageData.shipping_type === 'EXPRESS' },
+                  { label: 'Service', value: packageData.shipping_type === 'EXPRESS' ? 'Express 🚀' : packageData.shipping_type === 'COLIS_BATTERIE' ? 'Colis Batterie 🔋' : 'Ordinaire', accent: packageData.shipping_type === 'EXPRESS' },
                 ].map((row, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>{row.label}</span>
@@ -373,7 +373,7 @@ const TrackContent = () => {
                   {calculatePrice(packageData)?.toLocaleString()} FCFA
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--accent)', opacity: 0.7 }}>
-                  {packageData.shipping_type === 'EXPRESS' ? '13 000' : '10 000'} FCFA/kg · Chine → Togo
+                  {packageData.shipping_type === 'EXPRESS' ? '13 000' : packageData.shipping_type === 'COLIS_BATTERIE' ? '11 000' : '10 000'} FCFA/kg · Chine → Togo
                 </p>
               </div>
             )}

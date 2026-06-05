@@ -435,7 +435,7 @@ export default function PackageHistory() {
         <div style={{ marginBottom: '1.25rem' }}>
           <label className="form-label" style={{ marginBottom: '0.625rem' }}>Type d'envoi</label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {[['', 'Tous'], ['ORDINAIRE', 'Ordinaire'], ['EXPRESS', 'Express']].map(([val, lbl]) => (
+            {[['', 'Tous'], ['ORDINAIRE', 'Ordinaire'], ['EXPRESS', 'Express'], ['COLIS_BATTERIE', 'Colis Batterie 🔋']].map(([val, lbl]) => (
               <button key={val} className={`filter-chip ${filterShipping === val ? 'active' : ''}`} onClick={() => setFilterShipping(val)}>{lbl}</button>
             ))}
           </div>
