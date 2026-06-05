@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabase } from '@/lib/supabase'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
-import { notifyClientArriveLome } from '@/lib/whatsapp'
+import { notifyClientArriveLome, notifyClientEnTransit } from '@/lib/whatsapp'
 
 export async function PUT(req: NextRequest) {
   try {
@@ -44,6 +44,13 @@ export async function PUT(req: NextRequest) {
 
     // WhatsApp notification — fire and forget
     if (pkg.customer_phone && pkg.customer_name) {
+      if (status === 'EN_TRANSIT') {
+        notifyClientEnTransit({
+          phone: pkg.customer_phone,
+          customerName: pkg.customer_name,
+          trackingNumber: pkg.tracking_number,
+        }).catch(err => console.error('[whatsapp] en_transit failed:', err))
+      }
       if (status === 'ARRIVE_LOME') {
         notifyClientArriveLome({
           phone: pkg.customer_phone,

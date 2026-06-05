@@ -93,6 +93,24 @@ export async function notifyClientArriveLome(params: {
 }
 
 /**
+ * Notify client: package in transit to Lomé.
+ * Template "colis_en_transit":
+ *   {{1}} = nom client
+ *   {{2}} = numéro de tracking
+ */
+export async function notifyClientEnTransit(params: {
+  phone: string
+  customerName: string
+  trackingNumber: string
+}) {
+  const templateName = process.env.WHATSAPP_TEMPLATE_EN_TRANSIT ?? 'colis_en_transit'
+  return sendWhatsAppTemplate(params.phone, templateName, [
+    params.customerName,
+    params.trackingNumber,
+  ])
+}
+
+/**
  * Notify client: package received in China.
  * Template "colis_recu_chine":
  *   {{1}} = nom client
