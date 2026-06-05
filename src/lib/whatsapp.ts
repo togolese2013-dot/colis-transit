@@ -14,9 +14,12 @@ export function calculatePrice(weightKg: number, shippingType: string): number {
 }
 
 export function formatPhone(phone: string): string {
-  // Ensure E.164 format: remove spaces, ensure starts with +
   const cleaned = phone.replace(/\s+/g, '').replace(/[^+\d]/g, '')
-  return cleaned.startsWith('+') ? cleaned : `+${cleaned}`
+  if (cleaned.startsWith('+')) return cleaned
+  if (cleaned.startsWith('00')) return `+${cleaned.slice(2)}`
+  // Togolese local number (8 digits) → add +228
+  if (cleaned.length === 8) return `+228${cleaned}`
+  return `+${cleaned}`
 }
 
 /**
