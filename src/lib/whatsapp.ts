@@ -5,6 +5,7 @@ const PHONE_ID = process.env.WHATSAPP_PHONE_ID
 const RATE: Record<string, number> = {
   ORDINAIRE: 10000,
   EXPRESS: 13000,
+  COLIS_BATTERIE: 11000,
 }
 
 export function calculatePrice(weightKg: number, shippingType: string): number {
@@ -111,7 +112,7 @@ export async function notifyClientColisRecu(params: {
   const weightFormatted = params.weightKg.toString().replace('.', ',')
   const templateName = process.env.WHATSAPP_TEMPLATE_COLIS_RECU ?? 'colis_recu_chine'
 
-  const typeLabel = params.shippingType?.toUpperCase() === 'EXPRESS' ? 'Express ⚡' : 'Ordinaire ✈️'
+  const typeLabel = params.shippingType?.toUpperCase() === 'EXPRESS' ? 'Express ⚡' : params.shippingType?.toUpperCase() === 'COLIS_BATTERIE' ? 'Colis Batterie 🔋' : 'Ordinaire ✈️'
 
   return sendWhatsAppTemplate(params.phone, templateName, [
     params.customerName,
