@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { signClientToken, CLIENT_COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/clientAuth'
 
 export async function POST(req: NextRequest) {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     const cleanPhone = phone.trim().replace(/\s+/g, '')
 
-    const { data: account, error } = await supabase
+    const { data: account, error } = await supabaseServer
       .from('client_accounts')
       .select('id, name, phone, password_hash')
       .eq('phone', cleanPhone)

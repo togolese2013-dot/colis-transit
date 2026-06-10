@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { signClientToken, CLIENT_COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/clientAuth'
 
 export async function POST(req: NextRequest) {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const hash = await bcrypt.hash(password, 12)
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseServer
       .from('client_accounts')
       .insert({ name: name.trim(), phone: cleanPhone, password_hash: hash })
       .select('id, name, phone, created_at')

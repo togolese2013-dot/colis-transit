@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic'
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { verifyClientToken, CLIENT_COOKIE_NAME } from '@/lib/clientAuth'
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const cookieStore = await cookies()
     const token = cookieStore.get(CLIENT_COOKIE_NAME)?.value
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseServer
       .from('packages')
       .select('id, tracking_number, status, weight_kg, shipping_type, photo_urls, photo_url, created_at, notes')
       .eq('customer_phone', session.phone)
