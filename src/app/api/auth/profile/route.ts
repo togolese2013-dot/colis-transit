@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { verifyToken, signToken, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/auth'
 
 export async function PUT(req: NextRequest) {
@@ -19,7 +19,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     const { type } = body
 
-    const { data: admin, error: fetchError } = await supabase
+    const { data: admin, error: fetchError } = await supabaseServer
       .from('admins')
       .select('id, username, password_hash, display_name, role')
       .eq('id', session.id)
@@ -36,7 +36,7 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: 'Le nom doit contenir au moins 2 caractères' }, { status: 400 })
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseServer
         .from('admins')
         .update({ display_name: trimmed })
         .eq('id', admin.id)
@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: 'L\'identifiant doit contenir au moins 3 caractères' }, { status: 400 })
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseServer
         .from('admins')
         .update({ username: trimmed })
         .eq('id', admin.id)
@@ -88,7 +88,7 @@ export async function PUT(req: NextRequest) {
       }
 
       const hash = await bcrypt.hash(body.newPassword, 12)
-      const { error } = await supabase
+      const { error } = await supabaseServer
         .from('admins')
         .update({ password_hash: hash })
         .eq('id', admin.id)
@@ -116,7 +116,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const { data: admin, error } = await supabase
+    const { data: admin, error } = await supabaseServer
       .from('admins')
       .select('username, display_name, role, permissions')
       .eq('id', session.id)

@@ -3,23 +3,23 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
-async function getAdmin(req: NextRequest) {
+async function getAdmin() {
   const cookieStore = await cookies()
   const token = cookieStore.get(COOKIE_NAME)?.value
   return token ? await verifyToken(token) : null
 }
 
 // List all users
-export async function GET(req: NextRequest) {
-  const session = await getAdmin(req)
+export async function GET() {
+  const session = await getAdmin()
   if (!session || session.role !== 'superadmin') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseServer
     .from('admins')
     .select('id, username, display_name, role, permissions, created_at')
     .order('created_at', { ascending: true })
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
 // Create user
 export async function POST(req: NextRequest) {
-  const session = await getAdmin(req)
+  const session = await getAdmin()
   if (!session || session.role !== 'superadmin') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   }
 
   const hash = await bcrypt.hash(password, 12)
-  const { data, error } = await supabase
+  const { data, error } = await supabaseServer
     .from('admins')
     .insert({
       username: username.trim().toLowerCase(),
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
 // Update user (role, display_name, password)
 export async function PUT(req: NextRequest) {
-  const session = await getAdmin(req)
+  const session = await getAdmin()
   if (!session || session.role !== 'superadmin') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
@@ -93,7 +93,7 @@ export async function PUT(req: NextRequest) {
     updates.password_hash = await bcrypt.hash(newPassword, 12)
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseServer
     .from('admins')
     .update(updates)
     .eq('id', id)
@@ -106,7 +106,7 @@ export async function PUT(req: NextRequest) {
 
 // Delete user
 export async function DELETE(req: NextRequest) {
-  const session = await getAdmin(req)
+  const session = await getAdmin()
   if (!session || session.role !== 'superadmin') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
@@ -118,7 +118,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Vous ne pouvez pas supprimer votre propre compte' }, { status: 400 })
   }
 
-  const { error } = await supabase.from('admins').delete().eq('id', id)
+  const { error } = await supabaseServer.from('admins').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
 }

@@ -2,22 +2,22 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 
-async function getAdmin(req: NextRequest) {
+async function getAdmin() {
   const cookieStore = await cookies()
   const token = cookieStore.get(COOKIE_NAME)?.value
   return token ? await verifyToken(token) : null
 }
 
-export async function GET(req: NextRequest) {
-  const session = await getAdmin(req)
+export async function GET() {
+  const session = await getAdmin()
   if (!session || session.role !== 'superadmin') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseServer
     .from('settings')
     .select('key, value')
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await getAdmin(req)
+  const session = await getAdmin()
   if (!session || session.role !== 'superadmin') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
@@ -37,7 +37,7 @@ export async function PUT(req: NextRequest) {
   const body: Record<string, string> = await req.json()
 
   const upserts = Object.entries(body).map(([key, value]) => ({ key, value }))
-  const { error } = await supabase
+  const { error } = await supabaseServer
     .from('settings')
     .upsert(upserts, { onConflict: 'key' })
 

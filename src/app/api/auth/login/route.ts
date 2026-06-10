@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { signToken, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
@@ -13,13 +13,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
     }
 
-    const { data: admin, error } = await supabase
+    const { data: admin, error } = await supabaseServer
       .from('admins')
       .select('id, username, password_hash, role, display_name, permissions')
       .eq('username', username.trim().toLowerCase())
       .single()
 
     if (error || !admin) {
+      console.error('[login] admin lookup failed', {
+        username: username.trim().toLowerCase(),
+        code: error?.code,
+        message: error?.message,
+      })
       return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 })
     }
 
