@@ -2,9 +2,42 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 import { notifyClientColisRecu } from '@/lib/whatsapp'
+
+function normalizePhone(phone: string | null) {
+  if (!phone) return null
+  const compact = phone.trim().replace(/\s+/g, '')
+  return compact || null
+}
+
+function sameName(a: string | null, b: string | null) {
+  return (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase()
+}
+
+async function findKnownCustomerName(phone: string) {
+  const { data: customer } = await supabaseServer
+    .from('customers')
+    .select('name')
+    .eq('phone', phone)
+    .not('name', 'is', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (customer?.name) return customer.name
+
+  const { data: pkg } = await supabaseServer
+    .from('packages')
+    .select('customer_name')
+    .eq('customer_phone', phone)
+    .not('customer_name', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return pkg?.customer_name ?? null
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,11 +67,21 @@ export async function POST(req: NextRequest) {
     }
 
     const finalCustomerName = unknown_client ? null : (customer_name?.trim() || null)
-    const finalCustomerPhone = unknown_client ? null : (customer_phone?.trim() || null)
+    const finalCustomerPhone = unknown_client ? null : normalizePhone(customer_phone)
     const finalWeight = weight_kg ? parseFloat(weight_kg) : null
 
+    if (finalCustomerPhone && finalCustomerName) {
+      const knownName = await findKnownCustomerName(finalCustomerPhone)
+      if (knownName && !sameName(knownName, finalCustomerName)) {
+        return NextResponse.json({
+          error: `Ce numéro est déjà associé à ${knownName}. Utilisez ce nom ou vérifiez le numéro.`,
+          existingName: knownName,
+        }, { status: 409 })
+      }
+    }
+
     // Insert package
-    const { data: pkg, error } = await supabase
+    const { data: pkg, error } = await supabaseServer
       .from('packages')
       .insert([{
         tracking_number,
@@ -63,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     // Upsert customer
     if (finalCustomerName) {
-      await supabase.from('customers').upsert(
+      await supabaseServer.from('customers').upsert(
         { name: finalCustomerName, phone: finalCustomerPhone },
         { onConflict: 'name' }
       )

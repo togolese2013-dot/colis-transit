@@ -16,6 +16,7 @@ const AddPackage = () => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [unknownClient, setUnknownClient] = useState(false);
+  const [knownPhoneName, setKnownPhoneName] = useState<string | null>(null);
 
   const multiPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,6 +33,11 @@ const AddPackage = () => {
     const tracking = searchParams.get('tracking');
     if (tracking) setFormData(prev => ({ ...prev, tracking_number: tracking }));
   }, [searchParams]);
+
+  const normalizePhone = (phone: string) => phone.trim().replace(/\s+/g, '');
+  const nameMatchesKnownPhone = !knownPhoneName
+    || formData.customer_name.trim().toLowerCase() === knownPhoneName.trim().toLowerCase();
+  const hasPhoneNameConflict = !unknownClient && Boolean(knownPhoneName) && !nameMatchesKnownPhone;
 
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
@@ -90,6 +96,31 @@ const AddPackage = () => {
         setShowSuggestions(false);
       }
     }
+
+    if (name === "customer_phone") {
+      const phone = normalizePhone(value);
+      if (phone.length >= 8) {
+        const [{ data: customers }, { data: packages }] = await Promise.all([
+          supabase
+            .from('customers')
+            .select('name')
+            .eq('phone', phone)
+            .not('name', 'is', null)
+            .limit(1),
+          supabase
+            .from('packages')
+            .select('customer_name')
+            .eq('customer_phone', phone)
+            .not('customer_name', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(1),
+        ]);
+
+        setKnownPhoneName(customers?.[0]?.name || packages?.[0]?.customer_name || null);
+      } else {
+        setKnownPhoneName(null);
+      }
+    }
   }, []);
 
   const selectCustomer = (customer: any) => {
@@ -98,6 +129,7 @@ const AddPackage = () => {
       customer_name: customer.name,
       customer_phone: customer.phone || prev.customer_phone,
     }));
+    setKnownPhoneName(null);
     setSuggestions([]);
     setShowSuggestions(false);
   };
@@ -298,6 +330,39 @@ const AddPackage = () => {
               <div>
                 <label className="form-label">Téléphone</label>
                 <input type="tel" name="customer_phone" className="form-input" placeholder="+228 XX XX XX XX" value={formData.customer_phone} onChange={handleChange} />
+                {hasPhoneNameConflict && (
+                  <div style={{
+                    marginTop: '0.625rem',
+                    background: 'var(--warning-subtle, #fffbeb)',
+                    border: '1.5px solid var(--warning-border, #fde68a)',
+                    borderRadius: 'var(--r-lg)',
+                    padding: '0.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.625rem',
+                  }}>
+                    <span style={{ color: 'var(--text-2)', fontSize: '0.8125rem', fontWeight: 600 }}>
+                      Ce numéro est déjà associé à {knownPhoneName}. Utilisez ce nom ou vérifiez le numéro.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, customer_name: knownPhoneName || prev.customer_name }))}
+                      style={{
+                        alignSelf: 'flex-start',
+                        border: '1px solid var(--accent-border)',
+                        background: 'var(--accent-subtle)',
+                        color: 'var(--accent)',
+                        borderRadius: 'var(--r-full)',
+                        padding: '0.5rem 0.75rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Utiliser {knownPhoneName}
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -332,7 +397,8 @@ const AddPackage = () => {
         <button
           type="submit"
           className="btn btn-primary btn-full btn-lg"
-          disabled={loading}
+          disabled={loading || hasPhoneNameConflict}
+          style={{ opacity: loading || hasPhoneNameConflict ? 0.65 : 1 }}
         >
           {loading
             ? <><span className="spinner" />Enregistrement...</>
