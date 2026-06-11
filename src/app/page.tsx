@@ -9,6 +9,16 @@ export default function LandingPage() {
   const router = useRouter();
   const [trackingInput, setTrackingInput] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const chinaAddress = `广东省广州市越秀区环市西路202号\n桐舍酒店 7楼 729室, Guangzhou\nTél: +86 138 0924 9171 (Hamid)`;
+
+  function handleCopyAddress() {
+    navigator.clipboard.writeText(chinaAddress).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   useEffect(() => {
     fetch('/api/client/packages')
@@ -35,7 +45,14 @@ export default function LandingPage() {
         height: '56px',
       }}>
         <img src="/logo.svg" width={190} height={36} alt="Hamid Cargo" style={{ display: 'block' }} />
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            onClick={handleCopyAddress}
+            title="Copier l'adresse entrepôt Chine"
+            style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1.5px solid var(--border)', background: copied ? '#f0fdf4' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', transition: 'background 0.2s' }}
+          >
+            {copied ? '✅' : '📍'}
+          </button>
           {isLoggedIn ? (
             <Link href="/client/dashboard" style={{ textDecoration: 'none' }}>
               <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', fontSize: '0.8125rem', fontWeight: '700', color: 'white', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
