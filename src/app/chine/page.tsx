@@ -45,6 +45,8 @@ export default function PackageHistory() {
   const [filterShipping, setFilterShipping] = useState<string>('');
   const [filterWeightMin, setFilterWeightMin] = useState<string>('');
   const [filterWeightMax, setFilterWeightMax] = useState<string>('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [notifications, setNotifications] = useState<ClaimNotif[]>(() => {
     try {
       const saved = localStorage.getItem('chine_notifications');
@@ -118,8 +120,10 @@ export default function PackageHistory() {
   });
 
   const hasAdvancedFilters = filterDateRange !== 'all' || filterShipping !== '' || filterWeightMin !== '' || filterWeightMax !== '';
+  const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
+  const pagedPackages = filteredPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); };
+  const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); setPage(1); };
 
   const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE').length;
   const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT').length;
@@ -187,6 +191,7 @@ export default function PackageHistory() {
 
   const toggleFilter = (filter: string) => {
     setActiveFilter(prev => prev === filter ? null : filter);
+    setPage(1);
   };
 
   return (
@@ -273,7 +278,7 @@ export default function PackageHistory() {
             className="search-input"
             placeholder="Rechercher..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
           />
         </div>
         <button
@@ -288,7 +293,7 @@ export default function PackageHistory() {
       </div>
 
       {/* Shipping type chips */}
-      <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.875rem', overflowX: 'auto', paddingBottom: '2px' }}>
+      <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.875rem', flexWrap: 'wrap' }}>
         {([
           ['', 'Tous'],
           ['ORDINAIRE', '🚢 Ordinaire'],
@@ -298,8 +303,8 @@ export default function PackageHistory() {
           <button
             key={val}
             className={`filter-chip${filterShipping === val ? ' active' : ''}`}
-            onClick={() => setFilterShipping(val)}
-            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            onClick={() => { setFilterShipping(val); setPage(1); }}
+            style={{ whiteSpace: 'nowrap' }}
           >
             {lbl}
             {val !== '' && (
@@ -357,7 +362,7 @@ export default function PackageHistory() {
           <div className="empty-text">{searchQuery ? 'Aucun résultat pour cette recherche.' : 'Commencez par ajouter un colis.'}</div>
         </div>
       ) : (
-        filteredPackages.map((pkg) => (
+        pagedPackages.map((pkg) => (
           <div key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             {isSelectionMode && (
               <input
@@ -407,6 +412,29 @@ export default function PackageHistory() {
             </Link>
           </div>
         ))
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '1.25rem 0 0.5rem' }}>
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === 1 ? 'var(--text-3)' : 'var(--text-1)', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}
+          >
+            ← Préc.
+          </button>
+          <span style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--text-2)' }}>
+            {page} / {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === totalPages ? 'var(--text-3)' : 'var(--text-1)', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}
+          >
+            Suiv. →
+          </button>
+        </div>
       )}
 
       {/* Bulk action bar */}
