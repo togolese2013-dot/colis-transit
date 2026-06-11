@@ -140,59 +140,6 @@ export default function ClientDashboard() {
 
         {!loading && !error && (
           <>
-            {/* Quick actions */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem', marginBottom: '1rem' }}>
-              {[
-                {
-                  icon: <Search size={20} color="#3b82f6" />,
-                  bg: '#eff6ff',
-                  label: 'Suivre un colis',
-                  sub: 'Entrez un numéro',
-                  href: '/track',
-                },
-                {
-                  icon: <MessageCircle size={20} color="#22c55e" />,
-                  bg: '#f0fdf4',
-                  label: 'WhatsApp',
-                  sub: 'Lomé: Mouhamed',
-                  href: `https://wa.me/${WHATSAPP_LOME}`,
-                  external: true,
-                },
-                {
-                  icon: <Phone size={20} color="var(--accent)" />,
-                  bg: 'var(--accent-subtle)',
-                  label: 'Appeler Lomé',
-                  sub: '+228 90 19 65 29',
-                  href: `tel:${PHONE_LOME}`,
-                  external: true,
-                },
-                {
-                  icon: <DollarSign size={20} color="#f59e0b" />,
-                  bg: '#fef3c7',
-                  label: 'Nos tarifs',
-                  sub: 'Ordi · Express · Batterie',
-                  href: '/#services',
-                },
-              ].map(({ icon, bg, label, sub, href, external }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target={external ? '_blank' : undefined}
-                  rel={external ? 'noopener noreferrer' : undefined}
-                  style={{ textDecoration: 'none' }}
-                >
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', cursor: 'pointer' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {icon}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--text-1)' }}>{label}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{sub}</div>
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </div>
 
             {/* Summary */}
             {packages.length > 0 && (

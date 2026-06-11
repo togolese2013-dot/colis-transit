@@ -85,6 +85,11 @@ export default function LandingPage() {
                           <Package size={15} color="var(--accent)" /> Mes colis
                         </div>
                       </Link>
+                      <Link href="/track" onClick={() => setShowAccountMenu(false)} style={{ textDecoration: 'none' }}>
+                        <div style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', borderTop: '1px solid var(--border)' }}>
+                          <Search size={15} color="var(--accent)" /> Suivre un colis
+                        </div>
+                      </Link>
                       <Link href="/client/profile" onClick={() => setShowAccountMenu(false)} style={{ textDecoration: 'none' }}>
                         <div style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', borderTop: '1px solid var(--border)' }}>
                           <User size={15} color="var(--accent)" /> Mon profil
