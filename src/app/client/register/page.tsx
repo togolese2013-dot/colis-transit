@@ -1,11 +1,19 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Eye, EyeOff, Phone, User, Lock } from 'lucide-react'
 
 export default function ClientRegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
+  )
+}
+
+function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [form, setForm] = useState({ name: '', phone: '', password: '' })
@@ -138,6 +146,7 @@ export default function ClientRegisterPage() {
     </div>
   )
 }
+
 
 const labelStyle: React.CSSProperties = { fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-1)' }
 
