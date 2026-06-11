@@ -51,7 +51,7 @@ export default function LandingPage() {
             onClick={() => setShowAddressModal(true)}
             style={{ height: '36px', padding: '0 0.875rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', flexShrink: 0, fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-2)', fontFamily: 'var(--font)' }}
           >
-            <span style={{ fontSize: '0.9rem' }}>📍</span> Adresse
+            Adresse
           </button>
           {isLoggedIn ? (
             <Link href="/client/dashboard" style={{ textDecoration: 'none' }}>
