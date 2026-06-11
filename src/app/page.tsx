@@ -359,7 +359,7 @@ export default function LandingPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {[
                   { n: '1', text: 'Demandez à votre fournisseur d\'écrire sur l\'étiquette du colis : votre nom complet, votre numéro de téléphone togolais, et le mot EXPRESS si vous souhaitez un envoi rapide (laisser vide pour un envoi ordinaire). Ces informations doivent être en caractères lisibles — c\'est indispensable pour identifier votre marchandise dès la réception à l\'entrepôt.' },
-                  { n: '2', text: 'Tout colis arrivant sans nom sera automatiquement expédié par bateau (envoi ordinaire) et considéré comme abandonné s\'il n\'est pas réclamé dans les délais. Hamid Cargo ne pourra pas être tenu responsable de la perte d\'un colis non identifié.' },
+                  { n: '2', text: 'Tout colis arrivant sans nom sera automatiquement expédié par bateau et considéré comme abandonné s\'il n\'est pas réclamé dans les délais. Hamid Cargo ne pourra pas être tenu responsable de la perte d\'un colis non identifié.' },
                   { n: '3', text: 'Sans indication du type d\'envoi, votre colis sera traité comme envoi ORDINAIRE (10 000 FCFA/kg · 10–25 jours). Si vous souhaitez l\'envoi EXPRESS (13 000 FCFA/kg · 3–14 jours), assurez-vous que le mot EXPRESS est bien inscrit sur le colis avant l\'expédition.' },
                 ].map(({ n, text }) => (
                   <div key={n} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
