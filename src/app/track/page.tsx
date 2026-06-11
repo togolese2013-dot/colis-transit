@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, ArrowRight, Package, CheckCircle, Phone, User, X, LogIn } from "lucide-react";
+import { Search, ArrowRight, Package, CheckCircle, Phone, User, X, LogIn, ChevronLeft } from "lucide-react";
 
 const STATUS_STEPS = ['RECU_CHINE', 'EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'];
 
@@ -209,12 +209,19 @@ const TrackContent = () => {
       {/* Header */}
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem' }}>
         <div style={{ maxWidth: '560px', margin: '0 auto', padding: '1.75rem 1.25rem 0' }}>
-          <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-            <div style={{ width: '32px', height: '32px', background: 'var(--accent)', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Package size={16} color="white" strokeWidth={2.5} />
-            </div>
-            <span style={{ fontWeight: '800', fontSize: '1.0625rem', color: 'var(--text-1)', letterSpacing: '-0.01em' }}>Hamid Cargo</span>
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+            <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: '32px', height: '32px', background: 'var(--accent)', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Package size={16} color="white" strokeWidth={2.5} />
+              </div>
+              <span style={{ fontWeight: '800', fontSize: '1.0625rem', color: 'var(--text-1)', letterSpacing: '-0.01em' }}>Hamid Cargo</span>
+            </Link>
+            <Link href="/" style={{ textDecoration: 'none' }}>
+              <button style={{ height: '34px', padding: '0 0.875rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-2)', fontFamily: 'var(--font)' }}>
+                <ChevronLeft size={15} /> Retour
+              </button>
+            </Link>
+          </div>
 
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-1)', letterSpacing: '-0.02em', marginBottom: '0.375rem' }}>
             Suivi de colis
