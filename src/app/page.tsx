@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Package, Search, User, Clock, Phone, CheckCircle, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,13 @@ import { useRouter } from "next/navigation";
 export default function LandingPage() {
   const router = useRouter();
   const [trackingInput, setTrackingInput] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/client/packages')
+      .then(r => { if (r.ok) setIsLoggedIn(true) })
+      .catch(() => {})
+  }, []);
 
   function handleTrack(e: React.FormEvent) {
     e.preventDefault();
@@ -29,16 +36,26 @@ export default function LandingPage() {
       }}>
         <img src="/logo.svg" width={190} height={36} alt="Hamid Cargo" style={{ display: 'block' }} />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Link href="/client/login" style={{ textDecoration: 'none' }}>
-            <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
-              Connexion
-            </button>
-          </Link>
-          <Link href="/client/register" style={{ textDecoration: 'none' }}>
-            <button title="Mon compte" style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-              <User size={17} color="white" strokeWidth={2.5} />
-            </button>
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/client/dashboard" style={{ textDecoration: 'none' }}>
+              <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', fontSize: '0.8125rem', fontWeight: '700', color: 'white', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <User size={15} color="white" /> Mes colis
+              </button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/client/login" style={{ textDecoration: 'none' }}>
+                <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                  Connexion
+                </button>
+              </Link>
+              <Link href="/client/register" style={{ textDecoration: 'none' }}>
+                <button title="Créer un compte" style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                  <User size={17} color="white" strokeWidth={2.5} />
+                </button>
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -101,14 +118,10 @@ export default function LandingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem' }}>
           {/* Ordinaire */}
           <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ width: '44px', height: '44px', background: '#eff6ff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5s-2.5 0-4 1.5L13.5 8.5l-8.2-1.8c-.9-.2-1.8.1-2.4.7l-.5.5c-.4.4-.5 1-.2 1.4l7.2 3.6-3.6 7.2c-.4.4-.3 1 .1 1.4l.5.5c.6.6 1.5.9 2.4.7l8.2-1.8 3.5 3.5c1.5 1.5 3.5 1 4-.5s-.5-2.5-2-4l-3.5-3.5z" />
-              </svg>
-            </div>
+            <div style={{ width: '44px', height: '44px', background: '#eff6ff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem' }}>🚢</div>
             <div>
               <div style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--text-1)', marginBottom: '0.25rem' }}>Ordinaire</div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.5 }}>Transport par avion standard</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.5 }}>Transport standard Guangzhou–Lomé</div>
             </div>
             <div style={{ marginTop: 'auto' }}>
               <div style={{ fontSize: '1.375rem', fontWeight: '900', color: '#3b82f6', letterSpacing: '-0.02em' }}>10 000 <span style={{ fontSize: '0.8125rem', fontWeight: '600' }}>FCFA/kg</span></div>
@@ -122,11 +135,7 @@ export default function LandingPage() {
           {/* Express */}
           <div style={{ background: 'linear-gradient(135deg, #f97316, #fb923c)', borderRadius: '20px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'rgba(255,255,255,0.25)', borderRadius: 'var(--r-full)', padding: '0.15rem 0.5rem', fontSize: '0.625rem', fontWeight: '800', color: 'white', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Rapide</div>
-            <div style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5s-2.5 0-4 1.5L13.5 8.5l-8.2-1.8c-.9-.2-1.8.1-2.4.7l-.5.5c-.4.4-.5 1-.2 1.4l7.2 3.6-3.6 7.2c-.4.4-.3 1 .1 1.4l.5.5c.6.6 1.5.9 2.4.7l8.2-1.8 3.5 3.5c1.5 1.5 3.5 1 4-.5s-.5-2.5-2-4l-3.5-3.5z" />
-              </svg>
-            </div>
+            <div style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem' }}>✈️</div>
             <div>
               <div style={{ fontWeight: '800', fontSize: '1rem', color: 'white', marginBottom: '0.25rem' }}>Express</div>
               <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>Livraison prioritaire rapide</div>
@@ -136,6 +145,21 @@ export default function LandingPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem' }}>
                 <Clock size={12} color="rgba(255,255,255,0.8)" />
                 <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>3 – 14 jours</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Colis Batterie */}
+          <div style={{ background: 'white', border: '1.5px solid #fde68a', borderRadius: '20px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', gridColumn: '1 / -1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: '44px', height: '44px', background: '#fef3c7', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem', flexShrink: 0 }}>🔋</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--text-1)', marginBottom: '0.125rem' }}>Colis Batterie</div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.5 }}>Transport spécialisé pour articles contenant des batteries (téléphones, laptops, trottinettes…)</div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#f59e0b', letterSpacing: '-0.02em' }}>11 000</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-3)' }}>FCFA/kg</div>
               </div>
             </div>
           </div>
@@ -179,41 +203,99 @@ export default function LandingPage() {
             Créez votre compte avec votre numéro de téléphone pour consulter tous vos colis, leur statut et leur historique.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-            <Link href="/client/register" style={{ textDecoration: 'none' }}>
-              <button style={{ width: '100%', height: '48px', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: '700', fontSize: '0.9375rem', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <User size={16} /> Créer mon compte
-              </button>
-            </Link>
-            <Link href="/client/login" style={{ textDecoration: 'none' }}>
-              <button style={{ width: '100%', height: '48px', borderRadius: 'var(--r-full)', border: '1.5px solid rgba(255,255,255,0.2)', background: 'transparent', color: 'white', fontWeight: '600', fontSize: '0.9375rem', cursor: 'pointer', fontFamily: 'var(--font)' }}>
-                Déjà un compte ? Se connecter
-              </button>
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/client/dashboard" style={{ textDecoration: 'none' }}>
+                <button style={{ width: '100%', height: '48px', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: '700', fontSize: '0.9375rem', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <Package size={16} /> Voir mes colis
+                </button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/client/register" style={{ textDecoration: 'none' }}>
+                  <button style={{ width: '100%', height: '48px', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: '700', fontSize: '0.9375rem', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <User size={16} /> Créer mon compte
+                  </button>
+                </Link>
+                <Link href="/client/login" style={{ textDecoration: 'none' }}>
+                  <button style={{ width: '100%', height: '48px', borderRadius: 'var(--r-full)', border: '1.5px solid rgba(255,255,255,0.2)', background: 'transparent', color: 'white', fontWeight: '600', fontSize: '0.9375rem', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                    Déjà un compte ? Se connecter
+                  </button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
 
       {/* ── CONTACT ── */}
       <section style={{ padding: '0 1.5rem 3rem', maxWidth: '520px', margin: '0 auto' }}>
-        <div style={{ background: 'var(--bg-subtle)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)' }}>
-          <h3 style={{ fontWeight: '800', fontSize: '1.0625rem', color: 'var(--text-1)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Phone size={18} color="var(--accent)" /> Contactez-nous
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[
-              { label: 'WhatsApp / Appel', value: '+228 XX XX XX XX', icon: '📱' },
-              { label: 'Bureau Lomé', value: 'Lomé, Togo', icon: '📍' },
-              { label: 'Entrepôt Chine', value: 'Guangzhou, Chine', icon: '🏭' },
-            ].map(({ label, value, icon }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ fontSize: '1.125rem' }}>{icon}</span>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-                  <div style={{ fontSize: '0.9375rem', fontWeight: '700', color: 'var(--text-1)' }}>{value}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+
+          {/* Lomé */}
+          <div style={{ background: 'var(--bg-subtle)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>🇹🇬</span>
+              <h3 style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--text-1)', margin: 0 }}>Contact Lomé</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              {[
+                { name: 'Mouhamed', phones: ['+228 90 19 65 29', '+228 96 82 99 05'] },
+                { name: 'Seyni', phones: ['+228 70 15 13 30'] },
+              ].map(({ name, phones }) => (
+                <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--text-1)' }}>{name}</div>
+                    {phones.map(p => (
+                      <a key={p} href={`tel:${p.replace(/\s/g, '')}`} style={{ display: 'block', fontSize: '0.875rem', color: 'var(--accent)', fontWeight: '600', textDecoration: 'none' }}>{p}</a>
+                    ))}
+                  </div>
+                  <a href={`https://wa.me/${phones[0].replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                    style={{ flexShrink: 0, width: '40px', height: '40px', borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: '1.125rem' }}>
+                    💬
+                  </a>
                 </div>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '1rem', flexShrink: 0 }}>📍</span>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.5 }}>
+                  Dekon, dans le von d&apos;arrêt des Taxi d&apos;Agoe Zongo<br />Rue Sédomé, Lomé
+                </span>
               </div>
-            ))}
+            </div>
           </div>
+
+          {/* Chine */}
+          <div style={{ background: 'var(--bg-subtle)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>🇨🇳</span>
+              <h3 style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--text-1)', margin: 0 }}>Contact Chine</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              {[
+                { name: 'Hamid', phone: '+86 138 0924 9171' },
+                { name: 'Ibrahim', phone: '+86 159 1883 5701' },
+                { name: 'Kader', phone: '+86 195 7571 7440' },
+              ].map(({ name, phone }) => (
+                <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--text-1)' }}>{name}</div>
+                    <a href={`tel:${phone.replace(/\s/g, '')}`} style={{ fontSize: '0.875rem', color: 'var(--accent)', fontWeight: '600', textDecoration: 'none' }}>{phone}</a>
+                  </div>
+                  <a href={`https://wa.me/${phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                    style={{ flexShrink: 0, width: '40px', height: '40px', borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: '1.125rem' }}>
+                    💬
+                  </a>
+                </div>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '1rem', flexShrink: 0 }}>📍</span>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.5 }}>
+                  广东省广州市越秀区环市西路202号<br />桐舍酒店 7楼 729室, Guangzhou
+                </span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 

@@ -3,7 +3,10 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Package, LogOut, ChevronRight, Clock, Home, User, Search, X } from 'lucide-react'
+import { Package, LogOut, ChevronRight, Clock, Home, User, Search, X, MessageCircle, Phone, DollarSign, Copy, Check } from 'lucide-react'
+
+const WHATSAPP_LOME = '+22890196529'
+const PHONE_LOME = '+22890196529'
 
 interface ClientPackage {
   id: string
@@ -38,6 +41,7 @@ export default function ClientDashboard() {
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<Sort>('desc')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     fetch('/api/client/packages')
@@ -59,6 +63,14 @@ export default function ClientDashboard() {
   async function handleLogout() {
     await fetch('/api/client/logout', { method: 'POST' })
     router.push('/')
+  }
+
+  async function copyPhone() {
+    if (!name) return
+    const phone = packages[0]?.notes ?? ''
+    await navigator.clipboard.writeText(name)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   function getPrice(pkg: ClientPackage) {
@@ -128,6 +140,60 @@ export default function ClientDashboard() {
 
         {!loading && !error && (
           <>
+            {/* Quick actions */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem', marginBottom: '1rem' }}>
+              {[
+                {
+                  icon: <Search size={20} color="#3b82f6" />,
+                  bg: '#eff6ff',
+                  label: 'Suivre un colis',
+                  sub: 'Entrez un numéro',
+                  href: '/track',
+                },
+                {
+                  icon: <MessageCircle size={20} color="#22c55e" />,
+                  bg: '#f0fdf4',
+                  label: 'WhatsApp',
+                  sub: 'Lomé: Mouhamed',
+                  href: `https://wa.me/${WHATSAPP_LOME}`,
+                  external: true,
+                },
+                {
+                  icon: <Phone size={20} color="var(--accent)" />,
+                  bg: 'var(--accent-subtle)',
+                  label: 'Appeler Lomé',
+                  sub: '+228 90 19 65 29',
+                  href: `tel:${PHONE_LOME}`,
+                  external: true,
+                },
+                {
+                  icon: <DollarSign size={20} color="#f59e0b" />,
+                  bg: '#fef3c7',
+                  label: 'Nos tarifs',
+                  sub: 'Ordi · Express · Batterie',
+                  href: '/#services',
+                },
+              ].map(({ icon, bg, label, sub, href, external }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target={external ? '_blank' : undefined}
+                  rel={external ? 'noopener noreferrer' : undefined}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', cursor: 'pointer' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {icon}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--text-1)' }}>{label}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{sub}</div>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+
             {/* Summary */}
             {packages.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem', marginBottom: '1rem' }}>
@@ -187,12 +253,32 @@ export default function ClientDashboard() {
             )}
 
             {packages.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
-                <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--text-1)', marginBottom: '0.5rem' }}>Aucun colis trouvé</div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-3)', lineHeight: 1.6 }}>
-                  Vos colis apparaîtront ici une fois enregistrés avec votre numéro de téléphone.
-                </p>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ textAlign: 'center', padding: '1rem 0 1.25rem' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📦</div>
+                  <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--text-1)', marginBottom: '0.375rem' }}>Aucun colis pour l&apos;instant</div>
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.6, maxWidth: '280px', margin: '0 auto' }}>
+                    Vos colis apparaissent ici dès que l&apos;équipe Hamid Cargo les enregistre avec votre numéro.
+                  </p>
+                </div>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Contactez-nous</div>
+                  {[
+                    { name: 'Mouhamed (Lomé)', phone: '+228 90 19 65 29', wa: '22890196529' },
+                    { name: 'Seyni (Lomé)', phone: '+228 70 15 13 30', wa: '22870151330' },
+                  ].map(({ name, phone, wa }) => (
+                    <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--text-1)' }}>{name}</div>
+                        <a href={`tel:+${wa}`} style={{ fontSize: '0.8125rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: '600' }}>{phone}</a>
+                      </div>
+                      <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer"
+                        style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: '1rem', flexShrink: 0 }}>
+                        💬
+                      </a>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
