@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ChevronLeft, Users, Settings, Plus, Trash2,
-  Eye, EyeOff, Check, X, Pencil, Shield, ShieldOff, Key
+  Eye, EyeOff, Check, X, Pencil, Shield, ShieldOff, Key, Download, DatabaseBackup
 } from 'lucide-react'
 
 interface AdminUser {
@@ -21,12 +21,45 @@ interface AppSettings {
   cargo_subtitle?: string
 }
 
-type Tab = 'users' | 'settings'
+type Tab = 'users' | 'settings' | 'backup'
 type Status = { type: 'success' | 'error'; message: string } | null
 
 export default function AdminPanel() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('users')
+
+  // Backup state
+  const [backupLoading, setBackupLoading] = useState(false)
+  const [backupInfo, setBackupInfo] = useState<{ date: string; packages: number; customers: number; accounts: number } | null>(() => {
+    try { const s = localStorage.getItem('last_backup'); return s ? JSON.parse(s) : null } catch { return null }
+  })
+
+  async function handleBackup() {
+    setBackupLoading(true)
+    try {
+      const res = await fetch('/api/admin/backup')
+      if (!res.ok) { alert('Erreur lors de la sauvegarde'); return }
+      const blob = await res.blob()
+      const text = await blob.text()
+      const data = JSON.parse(text)
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+      const a = document.createElement('a')
+      const date = new Date().toISOString().slice(0, 10)
+      a.href = url
+      a.download = `hamidcargo_backup_${date}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      const info = {
+        date: new Date().toLocaleString('fr-FR'),
+        packages: data.tables.packages.count,
+        customers: data.tables.customers.count,
+        accounts: data.tables.client_accounts.count,
+      }
+      setBackupInfo(info)
+      localStorage.setItem('last_backup', JSON.stringify(info))
+    } catch { alert('Erreur inattendue') }
+    finally { setBackupLoading(false) }
+  }
 
   // Users state
   const [users, setUsers] = useState<AdminUser[]>([])
@@ -183,7 +216,7 @@ export default function AdminPanel() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', background: 'var(--bg-subtle)', borderRadius: 'var(--r-xl)', padding: '0.3rem' }}>
-        {([['users', <Users key="u" size={15} />, 'Utilisateurs'], ['settings', <Settings key="s" size={15} />, 'Paramètres']] as const).map(([key, icon, label]) => (
+        {([['users', <Users key="u" size={15} />, 'Utilisateurs'], ['settings', <Settings key="s" size={15} />, 'Paramètres'], ['backup', <Download key="b" size={15} />, 'Backup']] as const).map(([key, icon, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -420,6 +453,67 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── BACKUP TAB ── */}
+      {tab === 'backup' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* Last backup info */}
+          {backupInfo && (
+            <div className="card" style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                Dernière sauvegarde
+              </div>
+              <div style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-1)', marginBottom: '0.625rem' }}>
+                {backupInfo.date}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                {[
+                  ['📦 Colis', backupInfo.packages],
+                  ['👤 Clients', backupInfo.customers],
+                  ['🔑 Comptes client', backupInfo.accounts],
+                ].map(([label, count]) => (
+                  <div key={String(label)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                    <span style={{ color: 'var(--text-3)' }}>{label}</span>
+                    <span style={{ fontWeight: '700', color: 'var(--text-1)' }}>{count} lignes</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Download card */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1rem' }}>
+              <div style={{ width: '36px', height: '36px', background: '#eff6ff', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Download size={17} color="#3b82f6" />
+              </div>
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '0.9375rem', color: 'var(--text-1)' }}>Sauvegarder la base de données</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Format JSON · colis + clients + comptes</div>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '0.875rem', marginBottom: '1rem', fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.6 }}>
+              Télécharge un fichier <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--border)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>hamidcargo_backup_YYYY-MM-DD.json</code> contenant toutes les données. Les mots de passe ne sont pas inclus en clair (hachés uniquement).
+            </div>
+
+            <button
+              onClick={handleBackup}
+              disabled={backupLoading}
+              className="btn btn-primary btn-full"
+              style={{ opacity: backupLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              {backupLoading ? <><span className="spinner" /> Préparation…</> : <><Download size={16} /> Télécharger la sauvegarde</>}
+            </button>
+          </div>
+
+          {/* Warning */}
+          <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 'var(--r-md)', padding: '0.875rem', fontSize: '0.8125rem', color: '#92400e', lineHeight: 1.6 }}>
+            ⚠️ Conservez ce fichier dans un endroit sécurisé. Faites une sauvegarde régulièrement (hebdomadaire recommandé).
           </div>
         </div>
       )}
