@@ -10,8 +10,9 @@ export default function LandingPage() {
   const [trackingInput, setTrackingInput] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
 
-  const chinaAddress = `广东省广州市越秀区环市西路202号\n桐舍酒店 7楼 729室, Guangzhou\nTél: +86 138 0924 9171 (Hamid)`;
+  const chinaAddress = `广东省广州市越秀区环市西路202号\n桐舍酒店 7楼 729室\nGuangzhou, Chine\nTél: +86 138 0924 9171 (Hamid)`;
 
   function handleCopyAddress() {
     navigator.clipboard.writeText(chinaAddress).then(() => {
@@ -47,11 +48,10 @@ export default function LandingPage() {
         <img src="/logo.svg" width={190} height={36} alt="Hamid Cargo" style={{ display: 'block' }} />
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button
-            onClick={handleCopyAddress}
-            title="Copier l'adresse entrepôt Chine"
-            style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1.5px solid var(--border)', background: copied ? '#f0fdf4' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', transition: 'background 0.2s' }}
+            onClick={() => setShowAddressModal(true)}
+            style={{ height: '36px', padding: '0 0.875rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', flexShrink: 0, fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-2)', fontFamily: 'var(--font)' }}
           >
-            {copied ? '✅' : '📍'}
+            <span style={{ fontSize: '0.9rem' }}>📍</span> Adresse
           </button>
           {isLoggedIn ? (
             <Link href="/client/dashboard" style={{ textDecoration: 'none' }}>
@@ -60,18 +60,11 @@ export default function LandingPage() {
               </button>
             </Link>
           ) : (
-            <>
-              <Link href="/client/login" style={{ textDecoration: 'none' }}>
-                <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
-                  Connexion
-                </button>
-              </Link>
-              <Link href="/client/register" style={{ textDecoration: 'none' }}>
-                <button title="Créer un compte" style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                  <User size={17} color="white" strokeWidth={2.5} />
-                </button>
-              </Link>
-            </>
+            <Link href="/client/register" style={{ textDecoration: 'none' }}>
+              <button title="Créer un compte" style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <User size={17} color="white" strokeWidth={2.5} />
+              </button>
+            </Link>
           )}
         </div>
       </nav>
@@ -315,6 +308,70 @@ export default function LandingPage() {
 
         </div>
       </section>
+
+      {/* ── MODAL ADRESSE CHINE ── */}
+      {showAddressModal && (
+        <div
+          onClick={() => setShowAddressModal(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'white', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '520px', padding: '1.5rem 1.5rem 2.5rem', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            {/* Handle */}
+            <div style={{ width: '40px', height: '4px', background: 'var(--border)', borderRadius: '2px', margin: '0 auto 1.25rem' }} />
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: '0.25rem' }}>Entrepôt Guangzhou</div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-1)', margin: 0 }}>📦 Adresse à envoyer au fournisseur</h2>
+              </div>
+              <button onClick={() => setShowAddressModal(false)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1.5px solid var(--border)', background: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', flexShrink: 0 }}>✕</button>
+            </div>
+
+            {/* Address block */}
+            <div style={{ background: '#fafafa', border: '1.5px solid var(--border)', borderRadius: '16px', padding: '1.125rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.6875rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: '0.625rem' }}>Adresse complète</div>
+              <p style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--text-1)', lineHeight: 1.7, fontFamily: 'var(--font-mono, monospace)' }}>
+                广东省广州市越秀区<br />
+                环市西路202号<br />
+                桐舍酒店 7楼 729室<br />
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-2)' }}>Guangzhou, Chine</span>
+              </p>
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem', paddingTop: '0.75rem', fontSize: '0.875rem', color: 'var(--text-2)' }}>
+                📞 <strong>+86 138 0924 9171</strong> (Hamid)
+              </div>
+            </div>
+
+            {/* Copy button */}
+            <button
+              onClick={handleCopyAddress}
+              style={{ width: '100%', height: '48px', borderRadius: 'var(--r-full)', border: 'none', background: copied ? '#22c55e' : 'var(--accent)', color: 'white', fontWeight: '700', fontSize: '0.9375rem', cursor: 'pointer', fontFamily: 'var(--font)', marginBottom: '1.5rem', transition: 'background 0.2s' }}
+            >
+              {copied ? '✅ Adresse copiée !' : '📋 Copier l\'adresse'}
+            </button>
+
+            {/* Instructions */}
+            <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '16px', padding: '1.125rem' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#b45309', marginBottom: '0.875rem' }}>⚠️ Instructions importantes pour le fournisseur</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {[
+                  { n: '1', text: 'Demandez à votre fournisseur d\'écrire votre nom complet en caractères lisibles sur l\'étiquette du colis. C\'est indispensable pour identifier votre marchandise dès la réception à l\'entrepôt.' },
+                  { n: '2', text: 'Indiquez votre numéro de téléphone togolais (ex: 90 00 00 00). Ce numéro sera utilisé pour vous notifier à chaque étape et pour retrouver votre colis en cas de problème.' },
+                  { n: '3', text: 'Précisez clairement le type d\'envoi souhaité : ORDINAIRE (10 000 FCFA/kg · 10–25 jours) ou EXPRESS (13 000 FCFA/kg · 3–14 jours). Sans indication, votre colis sera traité en envoi ordinaire.' },
+                ].map(({ n, text }) => (
+                  <div key={n} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: '800', fontSize: '0.75rem', color: 'white' }}>{n}</div>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-1)', lineHeight: 1.5, paddingTop: '0.2rem' }}>{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── FOOTER ── */}
       <footer style={{ borderTop: '1px solid var(--border)', padding: '1.5rem', textAlign: 'center' }}>
