@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Package, LogOut, ChevronRight, Clock, Home, User, Search, X, MessageCircle, Phone, DollarSign, Copy, Check } from 'lucide-react'
+import { Package, LogOut, ChevronLeft, ChevronRight, Clock, Home, User, Search, X, MessageCircle, Phone, DollarSign, Copy, Check } from 'lucide-react'
 
 const WHATSAPP_LOME = '+22890196529'
 const PHONE_LOME = '+22890196529'
@@ -111,21 +111,11 @@ export default function ClientDashboard() {
             {name && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{name}</div>}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Link href="/client/profile" style={{ textDecoration: 'none' }}>
-            <button title="Profil" style={{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <User size={16} color="var(--text-2)" />
-            </button>
-          </Link>
-          <Link href="/" style={{ textDecoration: 'none' }}>
-            <button title="Accueil" style={{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <Home size={16} color="var(--text-2)" />
-            </button>
-          </Link>
-          <button onClick={handleLogout} title="Déconnexion" style={{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', border: '1px solid var(--error-border)', background: 'var(--error-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <LogOut size={16} color="var(--error)" />
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-2)', fontFamily: 'var(--font)' }}>
+            <ChevronLeft size={15} /> Retour
           </button>
-        </div>
+        </Link>
       </div>
 
       <div className="container" style={{ paddingTop: '1.25rem' }}>
