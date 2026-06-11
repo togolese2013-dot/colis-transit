@@ -358,9 +358,9 @@ export default function LandingPage() {
               <div style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#b45309', marginBottom: '0.875rem' }}>⚠️ Instructions importantes pour le fournisseur</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {[
-                  { n: '1', text: 'Demandez à votre fournisseur d\'écrire votre nom complet en caractères lisibles sur l\'étiquette du colis. C\'est indispensable pour identifier votre marchandise dès la réception à l\'entrepôt.' },
-                  { n: '2', text: 'Indiquez votre numéro de téléphone togolais (ex: 90 00 00 00). Ce numéro sera utilisé pour vous notifier à chaque étape et pour retrouver votre colis en cas de problème.' },
-                  { n: '3', text: 'Précisez clairement le type d\'envoi souhaité : ORDINAIRE (10 000 FCFA/kg · 10–25 jours) ou EXPRESS (13 000 FCFA/kg · 3–14 jours). Sans indication, votre colis sera traité en envoi ordinaire.' },
+                  { n: '1', text: 'Demandez à votre fournisseur d\'écrire sur l\'étiquette du colis : votre nom complet, votre numéro de téléphone togolais, et le mot EXPRESS si vous souhaitez un envoi rapide (laisser vide pour un envoi ordinaire). Ces informations doivent être en caractères lisibles — c\'est indispensable pour identifier votre marchandise dès la réception à l\'entrepôt.' },
+                  { n: '2', text: 'Tout colis arrivant sans nom sera automatiquement expédié par bateau (envoi ordinaire) et considéré comme abandonné s\'il n\'est pas réclamé dans les délais. Hamid Cargo ne pourra pas être tenu responsable de la perte d\'un colis non identifié.' },
+                  { n: '3', text: 'Sans indication du type d\'envoi, votre colis sera traité comme envoi ORDINAIRE (10 000 FCFA/kg · 10–25 jours). Si vous souhaitez l\'envoi EXPRESS (13 000 FCFA/kg · 3–14 jours), assurez-vous que le mot EXPRESS est bien inscrit sur le colis avant l\'expédition.' },
                 ].map(({ n, text }) => (
                   <div key={n} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                     <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: '800', fontSize: '0.75rem', color: 'white' }}>{n}</div>
