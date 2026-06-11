@@ -5,6 +5,12 @@ import { cookies } from 'next/headers'
 import { supabaseServer } from '@/lib/supabase-server'
 import { verifyClientToken, CLIENT_COOKIE_NAME } from '@/lib/clientAuth'
 
+function buildPhoneVariants(phone: string): string[] {
+  const digits = phone.replace(/\D/g, '')
+  const last8 = digits.slice(-8)
+  return [...new Set([phone, last8, `+228${last8}`, `228${last8}`])]
+}
+
 export async function GET() {
   try {
     const cookieStore = await cookies()
@@ -15,10 +21,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
+    const phoneVariants = buildPhoneVariants(session.phone)
     const { data, error } = await supabaseServer
       .from('packages')
       .select('id, tracking_number, status, weight_kg, shipping_type, photo_urls, photo_url, created_at, notes')
-      .eq('customer_phone', session.phone)
+      .in('customer_phone', phoneVariants)
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

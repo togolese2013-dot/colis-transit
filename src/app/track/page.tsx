@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, ArrowRight, Package, CheckCircle, Phone, User, X } from "lucide-react";
+import { Search, ArrowRight, Package, CheckCircle, Phone, User, X, LogIn } from "lucide-react";
 
 const STATUS_STEPS = ['RECU_CHINE', 'EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'];
 
@@ -33,6 +33,7 @@ const TrackContent = () => {
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const touchStartX = useRef<number | null>(null);
+  const [clientSession, setClientSession] = useState<{ name: string } | null | undefined>(undefined);
 
   const handleTrack = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -124,6 +125,10 @@ const TrackContent = () => {
 
   useEffect(() => {
     if (searchParams.get("id")) handleTrack();
+    fetch('/api/client/packages')
+      .then(r => r.status === 401 ? null : r.json())
+      .then(data => setClientSession(data ? { name: data.name } : null))
+      .catch(() => setClientSession(null))
   }, []);
 
   const calculatePrice = (pkg: any) => {
@@ -375,6 +380,21 @@ const TrackContent = () => {
                 <p style={{ fontSize: '0.75rem', color: 'var(--accent)', opacity: 0.7 }}>
                   {packageData.shipping_type === 'EXPRESS' ? '13 000' : packageData.shipping_type === 'COLIS_BATTERIE' ? '11 000' : '10 000'} FCFA/kg · Chine → Togo
                 </p>
+              </div>
+            )}
+
+            {/* Connect banner — shown when colis has a customer but visitor not logged in */}
+            {packageData.customer_name && clientSession === null && (
+              <div style={{ background: 'white', border: '1.5px solid var(--accent-border)', borderRadius: 'var(--r-2xl)', padding: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--text-1)', marginBottom: '0.25rem' }}>Ce colis vous appartient ?</div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>Connectez-vous pour voir tous vos colis</div>
+                </div>
+                <Link href={`/client/login?redirect=/track?id=${encodeURIComponent(trackingNumber)}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+                  <button style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: '700', fontSize: '0.8125rem', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+                    <LogIn size={14} /> Se connecter
+                  </button>
+                </Link>
               </div>
             )}
 

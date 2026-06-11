@@ -1,12 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Eye, EyeOff, Phone, Lock } from 'lucide-react'
 
-export default function ClientLoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/client/dashboard'
   const [form, setForm] = useState({ phone: '', password: '' })
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -25,7 +27,7 @@ export default function ClientLoginPage() {
     if (!res.ok) {
       setError(data.error)
     } else {
-      router.push('/client/dashboard')
+      router.push(redirectTo)
     }
     setLoading(false)
   }
@@ -123,4 +125,12 @@ const inputWrap: React.CSSProperties = {
 const inputInner: React.CSSProperties = {
   flex: 1, border: 'none', outline: 'none', background: 'none',
   fontSize: '16px', color: 'var(--text-1)', fontFamily: 'var(--font)',
+}
+
+export default function ClientLoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="spinner-dark spinner" /></div>}>
+      <LoginContent />
+    </Suspense>
+  )
 }
