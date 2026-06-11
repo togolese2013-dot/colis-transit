@@ -11,6 +11,14 @@ export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+
+  async function handleLogout() {
+    await fetch('/api/client/logout', { method: 'POST' });
+    setIsLoggedIn(false);
+    setShowAccountMenu(false);
+    router.refresh();
+  }
 
   const chinaAddress = `广东省广州市越秀区环市西路202号\n桐舍酒店 7楼 729室\nGuangzhou, Chine\nTél: +86 138 0924 9171 (Hamid)`;
 
@@ -53,19 +61,57 @@ export default function LandingPage() {
           >
             Adresse Chine
           </button>
-          {isLoggedIn ? (
-            <Link href="/client/dashboard" style={{ textDecoration: 'none' }}>
-              <button style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', fontSize: '0.8125rem', fontWeight: '700', color: 'white', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <User size={15} color="white" /> Mes colis
-              </button>
-            </Link>
-          ) : (
-            <Link href="/client/register" style={{ textDecoration: 'none' }}>
-              <button title="Créer un compte" style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                <User size={17} color="white" strokeWidth={2.5} />
-              </button>
-            </Link>
-          )}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowAccountMenu(v => !v)}
+              title="Mon compte"
+              style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+            >
+              <User size={17} color="white" strokeWidth={2.5} />
+            </button>
+            {showAccountMenu && (
+              <>
+                {/* overlay to close */}
+                <div onClick={() => setShowAccountMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 98 }} />
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0, zIndex: 99,
+                  background: 'white', border: '1.5px solid var(--border)', borderRadius: '16px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '180px', overflow: 'hidden',
+                }}>
+                  {isLoggedIn ? (
+                    <>
+                      <Link href="/client/dashboard" onClick={() => setShowAccountMenu(false)} style={{ textDecoration: 'none' }}>
+                        <div style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer' }}>
+                          <Package size={15} color="var(--accent)" /> Mes colis
+                        </div>
+                      </Link>
+                      <Link href="/client/profile" onClick={() => setShowAccountMenu(false)} style={{ textDecoration: 'none' }}>
+                        <div style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', borderTop: '1px solid var(--border)' }}>
+                          <User size={15} color="var(--accent)" /> Mon profil
+                        </div>
+                      </Link>
+                      <div onClick={handleLogout} style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '600', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', borderTop: '1px solid var(--border)' }}>
+                        🚪 Se déconnecter
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/client/login" onClick={() => setShowAccountMenu(false)} style={{ textDecoration: 'none' }}>
+                        <div style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer' }}>
+                          <User size={15} color="var(--accent)" /> Se connecter
+                        </div>
+                      </Link>
+                      <Link href="/client/register" onClick={() => setShowAccountMenu(false)} style={{ textDecoration: 'none' }}>
+                        <div style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', borderTop: '1px solid var(--border)' }}>
+                          ✨ Créer un compte
+                        </div>
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 
