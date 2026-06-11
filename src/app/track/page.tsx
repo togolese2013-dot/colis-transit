@@ -279,6 +279,31 @@ const TrackContent = () => {
         {packageData && statusCfg && (
           <div className="animate-in">
 
+            {/* Connect banner — shown when colis has a customer but visitor not logged in */}
+            {packageData.customer_name && clientSession === null && (
+              <div style={{ background: 'white', border: '1.5px solid var(--accent-border)', borderRadius: 'var(--r-2xl)', padding: '1.25rem', marginBottom: '1rem' }}>
+                <div style={{ marginBottom: '0.875rem' }}>
+                  <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--text-1)', marginBottom: '0.25rem' }}>Ce colis vous appartient ?</div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>Connectez-vous ou créez un compte pour suivre tous vos colis.</div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Link href={`/client/login?redirect=/track?id=${encodeURIComponent(trackingNumber)}`} style={{ textDecoration: 'none', flex: 1 }}>
+                    <button style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.625rem 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-1)', fontWeight: '600', fontSize: '0.8125rem', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                      <LogIn size={14} /> Se connecter
+                    </button>
+                  </Link>
+                  <Link
+                    href={`/client/register?name=${encodeURIComponent(packageData.customer_name)}&phone=${encodeURIComponent(packageData.customer_phone || '')}&redirect=/track?id=${encodeURIComponent(trackingNumber)}`}
+                    style={{ textDecoration: 'none', flex: 1 }}
+                  >
+                    <button style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.625rem 1rem', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: '700', fontSize: '0.8125rem', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                      ✨ Créer un compte
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Status badge */}
             <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
               <span className={`badge ${statusCfg.badgeClass}`} style={{ fontSize: '0.8125rem', padding: '0.4rem 1rem' }}>
@@ -380,31 +405,6 @@ const TrackContent = () => {
                 <p style={{ fontSize: '0.75rem', color: 'var(--accent)', opacity: 0.7 }}>
                   {packageData.shipping_type === 'EXPRESS' ? '13 000' : packageData.shipping_type === 'COLIS_BATTERIE' ? '11 000' : '10 000'} FCFA/kg · Chine → Togo
                 </p>
-              </div>
-            )}
-
-            {/* Connect banner — shown when colis has a customer but visitor not logged in */}
-            {packageData.customer_name && clientSession === null && (
-              <div style={{ background: 'white', border: '1.5px solid var(--accent-border)', borderRadius: 'var(--r-2xl)', padding: '1.25rem', marginBottom: '1rem' }}>
-                <div style={{ marginBottom: '0.875rem' }}>
-                  <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--text-1)', marginBottom: '0.25rem' }}>Ce colis vous appartient ?</div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>Connectez-vous ou créez un compte pour suivre tous vos colis.</div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <Link href={`/client/login?redirect=/track?id=${encodeURIComponent(trackingNumber)}`} style={{ textDecoration: 'none', flex: 1 }}>
-                    <button style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.625rem 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-1)', fontWeight: '600', fontSize: '0.8125rem', cursor: 'pointer', fontFamily: 'var(--font)' }}>
-                      <LogIn size={14} /> Se connecter
-                    </button>
-                  </Link>
-                  <Link
-                    href={`/client/register?name=${encodeURIComponent(packageData.customer_name)}&phone=${encodeURIComponent(packageData.customer_phone || '')}&redirect=/track?id=${encodeURIComponent(trackingNumber)}`}
-                    style={{ textDecoration: 'none', flex: 1 }}
-                  >
-                    <button style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.625rem 1rem', borderRadius: 'var(--r-full)', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: '700', fontSize: '0.8125rem', cursor: 'pointer', fontFamily: 'var(--font)' }}>
-                      ✨ Créer un compte
-                    </button>
-                  </Link>
-                </div>
               </div>
             )}
 
