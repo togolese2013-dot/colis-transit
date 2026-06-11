@@ -287,6 +287,30 @@ export default function PackageHistory() {
         </button>
       </div>
 
+      {/* Shipping type chips */}
+      <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.875rem', overflowX: 'auto', paddingBottom: '2px' }}>
+        {([
+          ['', 'Tous'],
+          ['ORDINAIRE', '🚢 Ordinaire'],
+          ['EXPRESS', '✈️ Express'],
+          ['COLIS_BATTERIE', '🔋 Batterie'],
+        ] as [string, string][]).map(([val, lbl]) => (
+          <button
+            key={val}
+            className={`filter-chip${filterShipping === val ? ' active' : ''}`}
+            onClick={() => setFilterShipping(val)}
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            {lbl}
+            {val !== '' && (
+              <span style={{ marginLeft: '0.25rem', fontSize: '0.6875rem', opacity: 0.75 }}>
+                ({packages.filter(p => p.shipping_type === val).length})
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Section header */}
       <div className="section-label">
         <span className="section-title">
