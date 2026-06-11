@@ -1,13 +1,22 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Eye, EyeOff, Phone, User, Lock } from 'lucide-react'
 
 export default function ClientRegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [form, setForm] = useState({ name: '', phone: '', password: '' })
+
+  useEffect(() => {
+    const name = searchParams.get('name')
+    const phone = searchParams.get('phone')
+    if (name || phone) {
+      setForm(f => ({ ...f, name: name || f.name, phone: phone || f.phone }))
+    }
+  }, [searchParams])
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +34,8 @@ export default function ClientRegisterPage() {
     if (!res.ok) {
       setError(data.error)
     } else {
-      router.push('/client/dashboard')
+      const redirect = searchParams.get('redirect')
+      router.push(redirect || '/client/dashboard')
     }
     setLoading(false)
   }
