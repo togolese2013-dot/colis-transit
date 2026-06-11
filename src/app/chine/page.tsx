@@ -379,6 +379,13 @@ export default function PackageHistory() {
                     {pkg.customer_name || 'Sans nom'}
                     {pkg.customer_phone && ` · ${pkg.customer_phone}`}
                   </div>
+                  {pkg.created_at && (
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginTop: '0.125rem' }}>
+                      {new Date(pkg.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                      {' · '}
+                      {new Date(pkg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
                 </div>
                 {!isSelectionMode && (
                   pkg.status === 'RECU_CHINE' ? (
