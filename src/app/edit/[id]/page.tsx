@@ -282,6 +282,19 @@ export default function EditPackage() {
               <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-1)' }}>{pkg.weight_kg} kg</span>
             </div>
           )}
+          {pkg.shipping_type && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>Type d&apos;envoi</span>
+              <span style={{
+                fontSize: '0.75rem', fontWeight: '700', padding: '0.2rem 0.6rem',
+                borderRadius: 'var(--r-full)',
+                background: pkg.shipping_type === 'EXPRESS' ? '#fff7ed' : pkg.shipping_type === 'COLIS_BATTERIE' ? '#fdf4ff' : '#f0fdf4',
+                color: pkg.shipping_type === 'EXPRESS' ? '#c2410c' : pkg.shipping_type === 'COLIS_BATTERIE' ? '#7e22ce' : '#15803d',
+              }}>
+                {pkg.shipping_type === 'EXPRESS' ? '✈️ Express' : pkg.shipping_type === 'COLIS_BATTERIE' ? '🔋 Batterie' : '🚢 Ordinaire'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Claim button */}
