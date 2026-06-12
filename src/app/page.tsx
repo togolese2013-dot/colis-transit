@@ -55,23 +55,66 @@ export default function LandingPage() {
         @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         .hc-nav-links { display: flex; }
         .hc-cta-mock { display: block; }
+        .hc-section { padding: 110px 0; }
+        .hc-forbidden-intro { display: block; }
+        .hc-footer-nav-cols { display: contents; }
         @media(max-width:768px){
+          /* Nav */
           .hc-nav-links { display: none !important; }
-          .hc-hero-title { font-size: 42px !important; }
-          .hc-hero-form { flex-direction: column !important; }
-          .hc-hero-form button[type="submit"] { width: 100% !important; justify-content: center !important; }
-          .hc-stats { grid-template-columns: repeat(2,1fr) !important; }
-          .hc-services-grid { grid-template-columns: 1fr !important; }
-          .hc-forbidden-layout { grid-template-columns: 1fr !important; gap: 32px !important; }
-          .hc-forbidden-grid { grid-template-columns: repeat(2,1fr) !important; }
-          .hc-process-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
-          .hc-process-arrow { display: none !important; }
-          .hc-cta-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
-          .hc-cta-mock { display: none !important; }
-          .hc-contact-grid { grid-template-columns: 1fr !important; }
-          .hc-footer-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
-          .hc-footer-bottom { flex-direction: column !important; gap: 8px !important; text-align: center !important; }
           .hc-section-pad { padding-left: 20px !important; padding-right: 20px !important; }
+
+          /* Hero */
+          .hc-hero-inner { padding: 56px 20px 48px !important; }
+          .hc-hero-title { font-size: 34px !important; line-height: 1.1 !important; letter-spacing: -0.03em !important; }
+          .hc-hero-sub { font-size: 15px !important; margin-bottom: 32px !important; }
+          .hc-hero-form { flex-direction: column !important; }
+          .hc-hero-form button[type="submit"] { width: 100% !important; justify-content: center !important; height: 52px !important; }
+          .hc-hero-input { height: 52px !important; }
+          .hc-trust { gap: 12px !important; }
+          .hc-trust span { font-size: 12px !important; }
+
+          /* Stats */
+          .hc-stats { grid-template-columns: repeat(2,1fr) !important; }
+          .hc-stat-val { font-size: 32px !important; }
+          .hc-stat-pad { padding: 24px 16px !important; }
+
+          /* Sections padding */
+          .hc-section { padding: 60px 0 !important; }
+          .hc-section-title { font-size: 30px !important; }
+          .hc-section-head { margin-bottom: 40px !important; }
+
+          /* Services */
+          .hc-services-grid { grid-template-columns: 1fr !important; }
+          .hc-service-price { font-size: 40px !important; }
+
+          /* Produits interdits */
+          .hc-forbidden-intro { display: none !important; }
+          .hc-forbidden-layout { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .hc-forbidden-grid { grid-template-columns: repeat(2,1fr) !important; gap: 10px !important; }
+          .hc-forbidden-item { padding: 14px !important; }
+
+          /* Process */
+          .hc-process-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
+          .hc-process-arrow { display: none !important; }
+
+          /* CTA */
+          .hc-cta-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+          .hc-cta-mock { display: none !important; }
+          .hc-cta-title { font-size: 30px !important; }
+
+          /* Contact */
+          .hc-contact-grid { grid-template-columns: 1fr !important; }
+          .hc-contact-card { padding: 24px !important; }
+
+          /* Footer */
+          .hc-footer-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+          .hc-footer-nav-cols { display: none !important; }
+          .hc-footer-bottom { flex-direction: column !important; gap: 8px !important; text-align: center !important; }
+
+          /* Modal */
+          .hc-modal-inner { border-radius: 20px !important; margin: 12px !important; }
+          .hc-modal-body { padding: 20px !important; }
+          .hc-modal-head { padding: 20px 20px 16px !important; }
         }
       `}</style>
 
@@ -145,19 +188,19 @@ export default function LandingPage() {
         <div style={{ position: 'absolute', right: '6%', top: '10%', width: '520px', height: '520px', background: 'radial-gradient(circle, rgba(249,115,22,0.13) 0%, transparent 68%)', borderRadius: '50%', filter: 'blur(48px)', pointerEvents: 'none', animation: 'glow-pulse 5s ease-in-out infinite' }} />
         <div style={{ position: 'absolute', left: '-4%', bottom: '5%', width: '380px', height: '380px', background: 'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 65%)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: '780px', textAlign: 'center', padding: '0 20px' }}>
+        <div className="hc-hero-inner" style={{ position: 'relative', zIndex: 1, maxWidth: '780px', textAlign: 'center', padding: '0 20px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.22)', borderRadius: '100px', padding: '6px 18px', marginBottom: '36px' }}>
             <span style={{ width: '6px', height: '6px', background: '#f97316', borderRadius: '50%', flexShrink: 0 }} />
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#fb923c', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Guangzhou → Lomé · Depuis 2021</span>
           </div>
 
-          <h1 className="hc-hero-title" style={{ fontSize: '80px', fontWeight: 900, letterSpacing: '-0.045em', lineHeight: 1.02, color: 'white', marginBottom: '24px' }}>
+          <h1 className="hc-hero-title" style={{ fontSize: '80px', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.02, color: 'white', marginBottom: '24px' }}>
             Vos colis de Chine<br />
             <span style={{ color: '#f97316' }}>au Togo,</span> en toute<br />
             confiance.
           </h1>
 
-          <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, marginBottom: '52px', maxWidth: '520px', marginLeft: 'auto', marginRight: 'auto' }}>
+          <p className="hc-hero-sub" style={{ fontSize: '18px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, marginBottom: '52px', maxWidth: '520px', marginLeft: 'auto', marginRight: 'auto' }}>
             Envoi de vos colis depuis Guangzhou jusqu&apos;à Lomé. Suivi en temps réel, notifications WhatsApp, prix transparents.
           </p>
 
@@ -172,13 +215,13 @@ export default function LandingPage() {
             </button>
           </form>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '28px', flexWrap: 'wrap' }}>
+          <div className="hc-trust" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '28px', flexWrap: 'wrap' }}>
             {['Suivi en temps réel', 'Photos à la réception', 'Notifications WhatsApp', 'Livraison à domicile'].map(t => (
               <div key={t} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(249,115,22,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{t}</span>
+                <span className="hc-trust" style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{t}</span>
               </div>
             ))}
           </div>
@@ -203,7 +246,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── SERVICES ── */}
-      <section id="services" style={{ padding: '110px 0', background: 'white' }}>
+      <section id="services" className="hc-section" style={{ padding: '110px 0', background: 'white' }}>
         <div className="hc-section-pad" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px' }}>
           <div style={{ maxWidth: '560px', marginBottom: '72px' }}>
             <p style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#f97316', marginBottom: '14px' }}>Nos formules</p>
@@ -292,10 +335,10 @@ export default function LandingPage() {
       </section>
 
       {/* ── PRODUITS INTERDITS ── */}
-      <section style={{ padding: '80px 0', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+      <section className="hc-section" style={{ padding: '80px 0', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
         <div className="hc-section-pad" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px' }}>
           <div className="hc-forbidden-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '80px', alignItems: 'start' }}>
-            <div style={{ paddingTop: '4px' }}>
+            <div className="hc-forbidden-intro" style={{ paddingTop: '4px' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '100px', padding: '6px 16px', marginBottom: '18px' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Refusé</span>
@@ -332,7 +375,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── PROCESS ── */}
-      <section id="process" style={{ padding: '110px 0', background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+      <section id="process" className="hc-section" style={{ padding: '110px 0', background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
         <div className="hc-section-pad" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px' }}>
           <div style={{ textAlign: 'center', marginBottom: '80px' }}>
             <p style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#f97316', marginBottom: '14px' }}>Processus</p>
@@ -367,13 +410,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA CLIENT ── */}
-      <section style={{ padding: '110px 0', background: '#05101f', position: 'relative', overflow: 'hidden' }}>
+      <section className="hc-section" style={{ padding: '110px 0', background: '#05101f', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', left: '-6%', top: '-25%', width: '540px', height: '540px', background: 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none' }} />
         <div className="hc-section-pad" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px', position: 'relative', zIndex: 1 }}>
           <div className="hc-cta-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
             <div>
               <p style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#f97316', marginBottom: '16px' }}>Espace client</p>
-              <h2 style={{ fontSize: '46px', fontWeight: 800, letterSpacing: '-0.035em', color: 'white', lineHeight: 1.08, marginBottom: '20px' }}>Gérez vos colis<br />depuis votre compte.</h2>
+              <h2 className="hc-cta-title" style={{ fontSize: '46px', fontWeight: 800, letterSpacing: '-0.035em', color: 'white', lineHeight: 1.08, marginBottom: '20px' }}>Gérez vos colis<br />depuis votre compte.</h2>
               <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, marginBottom: '40px' }}>Créez un compte avec votre numéro de téléphone togolais. Consultez tous vos colis, leur statut et leur historique à tout moment.</p>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 <Link href="/client/register" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', height: '52px', padding: '0 28px', background: '#f97316', borderRadius: '12px', fontSize: '15px', fontWeight: 700, color: 'white', textDecoration: 'none' }}>
@@ -409,7 +452,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── CONTACT ── */}
-      <section id="contact" style={{ padding: '110px 0', background: 'white' }}>
+      <section id="contact" className="hc-section" style={{ padding: '110px 0', background: 'white' }}>
         <div className="hc-section-pad" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px' }}>
           <div style={{ textAlign: 'center', marginBottom: '72px' }}>
             <p style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#f97316', marginBottom: '14px' }}>Contact</p>
@@ -492,7 +535,7 @@ export default function LandingPage() {
                 Suivre un colis
               </Link>
             </div>
-            <div>
+            <div className="hc-footer-nav-cols">
               <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '22px' }}>Navigation</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {[['#services', 'Services & Tarifs'], ['#process', 'Comment ça marche'], ['#contact', 'Contact'], ['/track', 'Suivi de colis']].map(([href, label]) => (
@@ -500,7 +543,7 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
-            <div>
+            <div className="hc-footer-nav-cols">
               <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '22px' }}>Espace client</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {[['/client/login', 'Se connecter'], ['/client/register', 'Créer un compte'], ['/privacy', 'Confidentialité']].map(([href, label]) => (
@@ -519,8 +562,8 @@ export default function LandingPage() {
       {/* ── MODAL ADRESSE ── */}
       {showAddressModal && (
         <div onClick={() => setShowAddressModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.45)', animation: 'fadeUp 0.18s ease-out' }}>
-            <div style={{ padding: '28px 32px 22px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+          <div onClick={e => e.stopPropagation()} className="hc-modal-inner" style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.45)', animation: 'fadeUp 0.18s ease-out' }}>
+            <div className="hc-modal-head" style={{ padding: '28px 32px 22px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#f97316', marginBottom: '8px' }}>Entrepôt Guangzhou</p>
                 <h3 style={{ fontSize: '21px', fontWeight: 800, color: '#0f172a', lineHeight: 1.25 }}>Adresse à transmettre<br />à votre fournisseur</h3>
@@ -530,7 +573,7 @@ export default function LandingPage() {
               </button>
             </div>
 
-            <div style={{ padding: '24px 32px 32px' }}>
+            <div className="hc-modal-body" style={{ padding: '24px 32px 32px' }}>
               <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '22px 24px', marginBottom: '16px' }}>
                 <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: '14px' }}>Adresse complète</p>
                 <p style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', lineHeight: 1.85, fontFamily: 'monospace' }}>
