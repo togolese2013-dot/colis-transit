@@ -221,8 +221,12 @@ export default function LandingPage() {
 
         {/* ── NAV ── */}
         <nav style={{ position: "sticky", top: 0, zIndex: 50, height: 54, background: "rgba(5,16,31,0.97)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
-          <Link href="/" style={{ flexShrink: 0 }}>
-            <img src="/logo.svg" alt="Hamid Cargo" style={{ height: 28, display: "block" }} />
+          <Link href="/" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            <img src="/logo.svg" alt="" style={{ height: 30, display: "block" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <span style={{ fontSize: 13, fontWeight: 900, color: "white", letterSpacing: "-0.02em", lineHeight: 1, fontFamily: FONT }}>HAMID</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#f97316", letterSpacing: "0.25em", lineHeight: 1, fontFamily: FONT }}>CARGO</span>
+            </div>
           </Link>
           <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
             <button onClick={() => setShowAddressModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, height: 36, padding: "0 14px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.13)", background: "rgba(255,255,255,0.06)", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", cursor: "pointer", fontFamily: FONT, whiteSpace: "nowrap" }}>
@@ -467,7 +471,13 @@ export default function LandingPage() {
         {/* ── FOOTER ── */}
         <footer style={{ background: "#05101f", padding: "24px 20px 32px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
-            <img src="/logo.svg" alt="Hamid Cargo" style={{ height: 28, marginBottom: 14, display: "block" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <img src="/logo.svg" alt="" style={{ height: 30, display: "block" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <span style={{ fontSize: 13, fontWeight: 900, color: "white", letterSpacing: "-0.02em", lineHeight: 1, fontFamily: FONT }}>HAMID</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: "#f97316", letterSpacing: "0.25em", lineHeight: 1, fontFamily: FONT }}>CARGO</span>
+              </div>
+            </div>
             <p style={{ fontSize: 12, color: "rgba(255,255,255,0.38)", lineHeight: 1.7, marginBottom: 20 }}>
               Transport de colis entre la Chine (Guangzhou) et le Togo (Lomé). Fiable, rapide et transparent depuis 2021.
             </p>

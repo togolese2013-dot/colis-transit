@@ -1,36 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 44" fill="none">
-  <!-- H icon mark -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" fill="none">
   <!-- Left pillar -->
-  <rect x="0" y="2" width="9" height="40" rx="3" fill="white"/>
+  <rect x="2" y="2" width="10" height="40" rx="3" fill="white"/>
   <!-- Right pillar -->
-  <rect x="23" y="2" width="9" height="40" rx="3" fill="white"/>
-  <!-- Orange crossbar with arrow tip -->
-  <rect x="0" y="17" width="32" height="10" rx="2" fill="#f97316"/>
-  <!-- Arrow tip extending right -->
-  <path d="M30 17 L38 22 L30 27 Z" fill="#f97316"/>
-
-  <!-- Divider -->
-  <rect x="52" y="6" width="1.5" height="32" rx="1" fill="rgba(255,255,255,0.15)"/>
-
-  <!-- HAMID wordmark -->
-  <text
-    x="62"
-    y="20"
-    font-family="'Plus Jakarta Sans', 'Arial Black', system-ui"
-    font-weight="900"
-    font-size="18"
-    letter-spacing="-0.03em"
-    fill="white"
-  >HAMID</text>
-
-  <!-- CARGO tagline -->
-  <text
-    x="63"
-    y="38"
-    font-family="'Plus Jakarta Sans', 'Arial', system-ui"
-    font-weight="700"
-    font-size="11"
-    letter-spacing="0.28em"
-    fill="#f97316"
-  >CARGO</text>
+  <rect x="26" y="2" width="10" height="40" rx="3" fill="white"/>
+  <!-- Orange crossbar -->
+  <rect x="2" y="17" width="34" height="10" rx="2" fill="#f97316"/>
+  <!-- Arrow tip -->
+  <path d="M32 17 L42 22 L32 27 Z" fill="#f97316"/>
 </svg>
