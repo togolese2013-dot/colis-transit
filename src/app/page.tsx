@@ -20,6 +20,17 @@ const STYLES = `
   @media(max-width: 767px) { .hc-stats-bar { display: none !important; } .hc-hero-badge { display: none !important; } .hc-logo-text { display: none !important; } }
 `;
 
+// ── Logo Icon (inline SVG — no file cache) ───────────────────────────────────
+
+const LogoIcon = ({ size = 30 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="2" width="10" height="40" rx="3" fill="white"/>
+    <rect x="26" y="2" width="10" height="40" rx="3" fill="white"/>
+    <rect x="2" y="17" width="34" height="10" rx="2" fill="#f97316"/>
+    <path d="M32 17 L42 22 L32 27 Z" fill="#f97316"/>
+  </svg>
+);
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 const WhatsAppIcon = ({ size = 17 }: { size?: number }) => (
@@ -222,7 +233,7 @@ export default function LandingPage() {
         {/* ── NAV ── */}
         <nav style={{ position: "sticky", top: 0, zIndex: 50, height: 54, background: "rgba(5,16,31,0.97)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
           <Link href="/" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <img src="/logo-v2.svg" alt="" style={{ height: 30, display: "block" }} />
+            <LogoIcon size={30} />
             <div className="hc-logo-text" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span style={{ fontSize: 13, fontWeight: 900, color: "white", letterSpacing: "-0.02em", lineHeight: 1, fontFamily: FONT }}>HAMID</span>
               <span style={{ fontSize: 9, fontWeight: 700, color: "#f97316", letterSpacing: "0.25em", lineHeight: 1, fontFamily: FONT }}>CARGO</span>
@@ -472,7 +483,7 @@ export default function LandingPage() {
         <footer style={{ background: "#05101f", padding: "24px 20px 32px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-              <img src="/logo-v2.svg" alt="" style={{ height: 30, display: "block" }} />
+              <LogoIcon size={30} />
               <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 <span style={{ fontSize: 13, fontWeight: 900, color: "white", letterSpacing: "-0.02em", lineHeight: 1, fontFamily: FONT }}>HAMID</span>
                 <span style={{ fontSize: 9, fontWeight: 700, color: "#f97316", letterSpacing: "0.25em", lineHeight: 1, fontFamily: FONT }}>CARGO</span>
