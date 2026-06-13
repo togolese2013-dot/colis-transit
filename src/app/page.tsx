@@ -216,17 +216,17 @@ export default function LandingPage() {
             <img src="/logo.svg" alt="Hamid Cargo" style={{ height: 22, display: "block", filter: "brightness(0) invert(1)" }} />
           </Link>
           <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
-            <button onClick={() => setShowAddressModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, height: 28, padding: "0 10px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.13)", background: "rgba(255,255,255,0.06)", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.6)", cursor: "pointer", fontFamily: FONT, whiteSpace: "nowrap" }}>
+            <button onClick={() => setShowAddressModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, height: 36, padding: "0 14px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.13)", background: "rgba(255,255,255,0.06)", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", cursor: "pointer", fontFamily: FONT, whiteSpace: "nowrap" }}>
               Adresse Chine
             </button>
             {isLoggedIn ? (
-              <Link href="/client/dashboard" style={{ width: 28, height: 28, borderRadius: 7, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Link href="/client/dashboard" style={{ width: 36, height: 36, borderRadius: 9, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="3" width="7" height="9" rx="1" /><rect x="15" y="3" width="7" height="5" rx="1" /><rect x="15" y="12" width="7" height="9" rx="1" /><rect x="2" y="16" width="7" height="5" rx="1" />
                 </svg>
               </Link>
             ) : (
-              <Link href="/client/login" style={{ width: 28, height: 28, borderRadius: 7, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Link href="/client/login" style={{ width: 36, height: 36, borderRadius: 9, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                 </svg>
