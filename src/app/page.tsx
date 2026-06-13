@@ -17,7 +17,7 @@ const STYLES = `
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   ::-webkit-scrollbar { display: none; }
-  @media(max-width: 767px) { .hc-stats-bar { display: none !important; } .hc-hero-badge { display: none !important; } .hc-logo-text { display: none !important; } }
+  @media(max-width: 767px) { .hc-stats-bar { display: none !important; } .hc-hero-badge { display: none !important; } }
 `;
 
 // ── Logo Icon (inline SVG — no file cache) ───────────────────────────────────
@@ -234,7 +234,7 @@ export default function LandingPage() {
         <nav style={{ position: "sticky", top: 0, zIndex: 50, height: 54, background: "rgba(5,16,31,0.97)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
           <Link href="/" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
             <LogoIcon size={30} />
-            <div className="hc-logo-text" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span style={{ fontSize: 13, fontWeight: 900, color: "white", letterSpacing: "-0.02em", lineHeight: 1, fontFamily: FONT }}>HAMID</span>
               <span style={{ fontSize: 9, fontWeight: 700, color: "#f97316", letterSpacing: "0.25em", lineHeight: 1, fontFamily: FONT }}>CARGO</span>
             </div>
