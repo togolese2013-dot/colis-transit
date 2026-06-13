@@ -191,6 +191,7 @@ export default function LandingPage() {
   const [trackingInput, setTrackingInput] = useState("");
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   useEffect(() => {
     fetch("/api/client/packages")
@@ -202,6 +203,13 @@ export default function LandingPage() {
     e.preventDefault();
     const val = trackingInput.trim();
     if (val) router.push(`/track?id=${encodeURIComponent(val.toUpperCase())}`);
+  };
+
+  const handleLogout = async () => {
+    await fetch("/api/client/logout", { method: "POST" });
+    setIsLoggedIn(false);
+    setShowAccountMenu(false);
+    router.refresh();
   };
 
   const featureBadges = ["Suivi réel", "Notif. WhatsApp", "Livraison Lomé"];
@@ -220,17 +228,53 @@ export default function LandingPage() {
             <button onClick={() => setShowAddressModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, height: 36, padding: "0 14px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.13)", background: "rgba(255,255,255,0.06)", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", cursor: "pointer", fontFamily: FONT, whiteSpace: "nowrap" }}>
               Adresse Chine
             </button>
-            {isLoggedIn ? (
-              <Link href="/client/dashboard" style={{ height: 36, padding: "0 14px", borderRadius: 9, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: "white", textDecoration: "none", whiteSpace: "nowrap", fontFamily: FONT }}>
-                Mes colis
-              </Link>
-            ) : (
-              <Link href="/client/login" style={{ width: 36, height: 36, borderRadius: 9, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowAccountMenu((v) => !v)}
+                style={{ width: 36, height: 36, borderRadius: 9, border: "none", background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                 </svg>
-              </Link>
-            )}
+              </button>
+              {showAccountMenu && (
+                <>
+                  <div onClick={() => setShowAccountMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 98 }} />
+                  <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 99, background: "white", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 8px 40px rgba(0,0,0,0.14)", minWidth: 210, overflow: "hidden", animation: "fadeUp 0.15s ease-out", fontFamily: FONT }}>
+                    {isLoggedIn ? (
+                      <>
+                        <Link href="/client/dashboard" onClick={() => setShowAccountMenu(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", fontSize: 14, fontWeight: 600, color: "#0f172a", borderBottom: "1px solid #f1f5f9", textDecoration: "none" }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="7" height="9" rx="1"/><rect x="15" y="3" width="7" height="5" rx="1"/><rect x="15" y="12" width="7" height="9" rx="1"/><rect x="2" y="16" width="7" height="5" rx="1"/></svg>
+                          Mes colis
+                        </Link>
+                        <Link href="/track" onClick={() => setShowAccountMenu(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", fontSize: 14, fontWeight: 600, color: "#0f172a", borderBottom: "1px solid #f1f5f9", textDecoration: "none" }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                          Suivre un colis
+                        </Link>
+                        <div onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", fontSize: 14, fontWeight: 600, color: "#ef4444", cursor: "pointer" }}>
+                          🚪 Se déconnecter
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/track" onClick={() => setShowAccountMenu(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", fontSize: 14, fontWeight: 600, color: "#0f172a", borderBottom: "1px solid #f1f5f9", textDecoration: "none" }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                          Suivre un colis
+                        </Link>
+                        <Link href="/client/login" onClick={() => setShowAccountMenu(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", fontSize: 14, fontWeight: 600, color: "#0f172a", borderBottom: "1px solid #f1f5f9", textDecoration: "none" }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                          Se connecter
+                        </Link>
+                        <Link href="/client/register" onClick={() => setShowAccountMenu(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", fontSize: 14, fontWeight: 700, color: "#f97316", textDecoration: "none" }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                          Créer un compte
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </nav>
 
