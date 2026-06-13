@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const STYLES = `
+  body { padding-bottom: 0 !important; }
   @keyframes pulse-dot {
     0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
     50%       { box-shadow: 0 0 0 6px rgba(249,115,22,0); }
