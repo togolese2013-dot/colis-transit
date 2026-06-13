@@ -16,7 +16,7 @@ const STYLES = `
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   ::-webkit-scrollbar { display: none; }
-  @media(max-width: 767px) { .hc-stats-bar { display: none !important; } }
+  @media(max-width: 767px) { .hc-stats-bar { display: none !important; } .hc-hero-badge { display: none !important; } }
 `;
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -240,7 +240,7 @@ export default function LandingPage() {
           <div className="glow-anim" style={{ position: "absolute", right: -30, top: -40, width: 240, height: 240, background: "radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)", backgroundSize: "22px 22px", pointerEvents: "none" }} />
           <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.25)", borderRadius: 100, padding: "4px 13px", marginBottom: 18 }}>
+            <div className="hc-hero-badge" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.25)", borderRadius: 100, padding: "4px 13px", marginBottom: 18 }}>
               <span style={{ width: 5, height: 5, background: "#f97316", borderRadius: "50%", flexShrink: 0 }} />
               <span style={{ fontSize: 10, fontWeight: 700, color: "#fb923c", letterSpacing: "0.09em", textTransform: "uppercase" }}>Guangzhou → Lomé · Depuis 2021</span>
             </div>
@@ -339,7 +339,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.06em" }}>Produits interdits</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5, marginBottom: 10 }}>
-                {["Chicha électronique", "Grosses batteries", "Drones", "Contrefaçons", "Produits dangereux", "Armes & munitions"].map((item) => (
+                {["Chicha électronique", "Grosses batteries", "Drones", "Produits dangereux", "Armes & munitions"].map((item) => (
                   <div key={item} style={{ background: "white", border: "1px solid #fecaca", borderRadius: 7, padding: "7px 9px", fontSize: 11, fontWeight: 600, color: "#7f1d1d" }}>{item}</div>
                 ))}
               </div>
