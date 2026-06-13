@@ -18,6 +18,12 @@ const STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
   ::-webkit-scrollbar { display: none; }
   @media(max-width: 767px) { .hc-stats-bar { display: none !important; } .hc-hero-badge { display: none !important; } }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .hero-1{animation:fadeUp 0.5s ease-out 0.1s both}
+  .hero-2{animation:fadeUp 0.5s ease-out 0.25s both}
+  .hero-3{animation:fadeUp 0.5s ease-out 0.4s both}
+  .hero-4{animation:fadeUp 0.5s ease-out 0.55s both}
+  .hero-5{animation:fadeUp 0.5s ease-out 0.7s both}
 `;
 
 // ── Logo Icon (inline SVG — no file cache) ───────────────────────────────────
@@ -195,6 +201,24 @@ function OfficeCard({ flag, label, city, contacts, address, onAddressClick }: {
   );
 }
 
+// ── CountUp ───────────────────────────────────────────────────────────────────
+
+function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const [val, setVal] = React.useState(0);
+  React.useEffect(() => {
+    const dur = 1400;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(Math.floor(eased * to));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [to]);
+  return <>{val}{suffix}</>;
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
@@ -298,17 +322,17 @@ export default function LandingPage() {
           <div className="glow-anim" style={{ position: "absolute", right: -30, top: -40, width: 240, height: 240, background: "radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)", backgroundSize: "22px 22px", pointerEvents: "none" }} />
           <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto" }}>
-            <div className="hc-hero-badge" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.25)", borderRadius: 100, padding: "4px 13px", marginBottom: 18 }}>
+            <div className="hc-hero-badge hero-1" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.25)", borderRadius: 100, padding: "4px 13px", marginBottom: 18 }}>
               <span style={{ width: 5, height: 5, background: "#f97316", borderRadius: "50%", flexShrink: 0 }} />
               <span style={{ fontSize: 10, fontWeight: 700, color: "#fb923c", letterSpacing: "0.09em", textTransform: "uppercase" }}>Guangzhou → Lomé · Depuis 2021</span>
             </div>
-            <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.05, color: "white", marginBottom: 12 }}>
+            <h1 className="hero-2" style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.05, color: "white", marginBottom: 12 }}>
               Vos colis de Chine<br /><span style={{ color: "#f97316" }}>au Togo,</span> en toute<br />confiance.
             </h1>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.48)", lineHeight: 1.7, marginBottom: 22 }}>
+            <p className="hero-3" style={{ fontSize: 13, color: "rgba(255,255,255,0.48)", lineHeight: 1.7, marginBottom: 22 }}>
               Envoi depuis Guangzhou jusqu'à Lomé. Suivi en temps réel, notifications WhatsApp.
             </p>
-            <form onSubmit={handleTrackSubmit} style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
+            <form className="hero-4" onSubmit={handleTrackSubmit} style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.11)", borderRadius: 12, padding: "0 15px", height: 48 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                 <input
@@ -323,7 +347,7 @@ export default function LandingPage() {
                 Suivre mon colis <ArrowRight />
               </button>
             </form>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            <div className="hero-5" style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
               {featureBadges.map((badge) => (
                 <div key={badge} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.06)", borderRadius: 100, padding: "4px 10px" }}>
                   <div style={{ width: 13, height: 13, borderRadius: "50%", background: "rgba(249,115,22,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -339,13 +363,13 @@ export default function LandingPage() {
         {/* ── STATS ── */}
         <div className="hc-stats-bar" style={{ background: "#f8fafc", borderBottom: "1px solid #e8ecf2", display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
           {[
-            { val: "500+", label: "Colis livrés", accent: false },
-            { val: "3+", label: "Ans d'expérience", accent: false },
-            { val: "2", label: "Bureaux GZ & Lomé", accent: false },
-            { val: "100%", label: "Suivi garanti", accent: true },
-          ].map(({ val, label, accent }, i) => (
+            { to: 500, suffix: "+", label: "Colis livrés", accent: false },
+            { to: 3, suffix: "+", label: "Ans d'expérience", accent: false },
+            { to: 2, suffix: "", label: "Bureaux GZ & Lomé", accent: false },
+            { to: 100, suffix: "%", label: "Suivi garanti", accent: true },
+          ].map(({ to, suffix, label, accent }, i) => (
             <div key={label} style={{ textAlign: "center", padding: "20px 10px", borderRight: i < 3 ? "1px solid #e8ecf2" : "none" }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: accent ? "#f97316" : "#0f172a", letterSpacing: "-0.04em", lineHeight: 1 }}>{val}</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: accent ? "#f97316" : "#0f172a", letterSpacing: "-0.04em", lineHeight: 1 }}><CountUp to={to} suffix={suffix} /></div>
               <div style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
             </div>
           ))}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Bell, Plus, BarChart2, User, Trash2, Send, Home, Upload, SlidersHorizontal, Users, X } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const getBadgeClass = (status: string) => {
   switch (status) {
@@ -47,6 +48,7 @@ export default function PackageHistory() {
   const [filterWeightMax, setFilterWeightMax] = useState<string>('');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [notifications, setNotifications] = useState<ClaimNotif[]>(() => {
     try {
       const saved = localStorage.getItem('chine_notifications');
@@ -61,6 +63,15 @@ export default function PackageHistory() {
     setNotifications(notifs);
     try { localStorage.setItem('chine_notifications', JSON.stringify(notifs)); } catch {}
   };
+
+  // Cmd+K global search shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowGlobalSearch(true); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   useEffect(() => {
     async function fetchPackages() {
@@ -208,7 +219,16 @@ export default function PackageHistory() {
             <p>Guangzhou Warehouse</p>
           </div>
         </div>
-        <div style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={() => setShowGlobalSearch(true)}
+            className="notif-btn"
+            aria-label="Recherche globale"
+            title="Rechercher (⌘K)"
+          >
+            <Search size={18} />
+          </button>
+          <div style={{ position: 'relative' }}>
           <button className="notif-btn" aria-label="Notifications" onClick={() => setNotifOpen(o => !o)}>
             <Bell size={18} />
             {notifications.length > 0 && (
@@ -247,8 +267,12 @@ export default function PackageHistory() {
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
+
+      {/* Global Search */}
+      {showGlobalSearch && <GlobalSearch onClose={() => setShowGlobalSearch(false)} />}
 
       {/* Stats */}
       <div className="stats-row">
