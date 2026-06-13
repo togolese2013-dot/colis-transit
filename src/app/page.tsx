@@ -222,7 +222,7 @@ export default function LandingPage() {
         {/* ── NAV ── */}
         <nav style={{ position: "sticky", top: 0, zIndex: 50, height: 54, background: "rgba(5,16,31,0.97)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
           <Link href="/" style={{ flexShrink: 0 }}>
-            <img src="/logo.svg" alt="Hamid Cargo" style={{ height: 22, display: "block", filter: "brightness(0) invert(1)" }} />
+            <img src="/logo.svg" alt="Hamid Cargo" style={{ height: 28, display: "block" }} />
           </Link>
           <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
             <button onClick={() => setShowAddressModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, height: 36, padding: "0 14px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.13)", background: "rgba(255,255,255,0.06)", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", cursor: "pointer", fontFamily: FONT, whiteSpace: "nowrap" }}>
@@ -467,7 +467,7 @@ export default function LandingPage() {
         {/* ── FOOTER ── */}
         <footer style={{ background: "#05101f", padding: "24px 20px 32px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
-            <img src="/logo.svg" alt="Hamid Cargo" style={{ height: 22, filter: "brightness(0) invert(1)", marginBottom: 14, display: "block" }} />
+            <img src="/logo.svg" alt="Hamid Cargo" style={{ height: 28, marginBottom: 14, display: "block" }} />
             <p style={{ fontSize: 12, color: "rgba(255,255,255,0.38)", lineHeight: 1.7, marginBottom: 20 }}>
               Transport de colis entre la Chine (Guangzhou) et le Togo (Lomé). Fiable, rapide et transparent depuis 2021.
             </p>
