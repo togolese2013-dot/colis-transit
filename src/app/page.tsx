@@ -16,6 +16,7 @@ const STYLES = `
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   ::-webkit-scrollbar { display: none; }
+  @media(max-width: 767px) { .hc-stats-bar { display: none !important; } }
 `;
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -278,7 +279,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── STATS ── */}
-        <div style={{ background: "#f8fafc", borderBottom: "1px solid #e8ecf2", display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
+        <div className="hc-stats-bar" style={{ background: "#f8fafc", borderBottom: "1px solid #e8ecf2", display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
           {[
             { val: "500+", label: "Colis livrés", accent: false },
             { val: "3+", label: "Ans d'expérience", accent: false },
