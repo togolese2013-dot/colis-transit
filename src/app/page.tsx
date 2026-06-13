@@ -221,10 +221,8 @@ export default function LandingPage() {
               Adresse Chine
             </button>
             {isLoggedIn ? (
-              <Link href="/client/dashboard" style={{ width: 36, height: 36, borderRadius: 9, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="3" width="7" height="9" rx="1" /><rect x="15" y="3" width="7" height="5" rx="1" /><rect x="15" y="12" width="7" height="9" rx="1" /><rect x="2" y="16" width="7" height="5" rx="1" />
-                </svg>
+              <Link href="/client/dashboard" style={{ height: 36, padding: "0 14px", borderRadius: 9, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: "white", textDecoration: "none", whiteSpace: "nowrap", fontFamily: FONT }}>
+                Mes colis
               </Link>
             ) : (
               <Link href="/client/login" style={{ width: 36, height: 36, borderRadius: 9, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
