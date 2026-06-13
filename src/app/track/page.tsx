@@ -323,80 +323,6 @@ function TimelineEvent({ event, isLast }: { event: ParcelEvent; isLast: boolean 
 
 // ── Route Map ─────────────────────────────────────────────────────────────────
 
-function RouteMap({ dbStatus }: { dbStatus: string }) {
-  // Pre-computed cubic bezier positions for path: M260,40 C220,10 100,30 60,75
-  const DOT: Record<string, [number, number]> = {
-    RECU_CHINE:  [255, 41],
-    EN_TRANSIT:  [160, 29],
-    ARRIVE_LOME: [83,  57],
-    LIVRE:       [63,  74],
-  };
-  const DASH: Record<string, number> = {
-    RECU_CHINE:  38,
-    EN_TRANSIT:  155,
-    ARRIVE_LOME: 212,
-    LIVRE:       260,
-  };
-  const pos = DOT[dbStatus] ?? DOT.EN_TRANSIT;
-  const drawn = DASH[dbStatus] ?? 155;
-  const FONT = "'Plus Jakarta Sans', system-ui, sans-serif";
-
-  return (
-    <div style={{ padding: "16px 16px 0" }}>
-      <div style={{ background: "#0f172a", borderRadius: 16, padding: "18px 16px 14px", position: "relative", overflow: "hidden" }}>
-        {/* Decorative dots */}
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "18px 18px", pointerEvents: "none" }} />
-        <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", marginBottom: 10, position: "relative", fontFamily: FONT }}>Route en cours</p>
-        <svg viewBox="0 0 320 110" width="100%" style={{ display: "block", position: "relative" }}>
-          {/* City dots */}
-          <circle cx="260" cy="40" r="5" fill="#f97316" opacity="0.9"/>
-          <circle cx="260" cy="40" r="9" fill="#f97316" opacity="0.2"/>
-          <circle cx="60" cy="75" r="5" fill="white" opacity="0.7"/>
-          <circle cx="60" cy="75" r="9" fill="white" opacity="0.1"/>
-
-          {/* City labels */}
-          <text x="260" y="26" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="8" fontWeight="700" fontFamily="system-ui" letterSpacing="0.05em">GUANGZHOU</text>
-          <text x="260" y="18" textAnchor="middle" fill="rgba(255,255,255,0.25)" fontSize="7" fontFamily="system-ui">🇨🇳</text>
-          <text x="60" y="97" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="8" fontWeight="700" fontFamily="system-ui" letterSpacing="0.05em">LOMÉ</text>
-          <text x="60" y="105" textAnchor="middle" fill="rgba(255,255,255,0.25)" fontSize="7" fontFamily="system-ui">🇹🇬</text>
-
-          {/* Background dashed route */}
-          <path d="M260,40 C220,10 100,30 60,75" stroke="rgba(255,255,255,0.08)" strokeWidth="2" fill="none" strokeDasharray="5,4"/>
-
-          {/* Drawn progress route */}
-          <path d="M260,40 C220,10 100,30 60,75" stroke="url(#routeGrad)" strokeWidth="2.5" fill="none"
-            strokeDasharray={`${drawn} 260`} strokeDashoffset="0"
-            strokeLinecap="round"
-            style={{ transition: "stroke-dasharray 1s ease" }}
-          />
-
-          {/* Gradient def */}
-          <defs>
-            <linearGradient id="routeGrad" x1="1" y1="0" x2="0" y2="0">
-              <stop offset="0%" stopColor="#f97316"/>
-              <stop offset="100%" stopColor="#fb923c"/>
-            </linearGradient>
-          </defs>
-
-          {/* Moving dot (plane emoji alternative: orange circle with glow) */}
-          {dbStatus !== "LIVRE" ? (
-            <g>
-              <circle cx={pos[0]} cy={pos[1]} r="7" fill="#f97316" opacity="0.2"/>
-              <circle cx={pos[0]} cy={pos[1]} r="4.5" fill="#f97316"/>
-              <circle cx={pos[0]} cy={pos[1]} r="2" fill="white"/>
-            </g>
-          ) : (
-            <g>
-              <circle cx={pos[0]} cy={pos[1]} r="7" fill="#22c55e" opacity="0.25"/>
-              <circle cx={pos[0]} cy={pos[1]} r="4.5" fill="#22c55e"/>
-              <circle cx={pos[0]} cy={pos[1]} r="2" fill="white"/>
-            </g>
-          )}
-        </svg>
-      </div>
-    </div>
-  );
-}
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
@@ -701,9 +627,6 @@ function TrackContent() {
 
         {/* STEP BAR */}
         <StepBar steps={steps} />
-
-        {/* ROUTE MAP */}
-        <RouteMap dbStatus={dbStatus} />
 
         {/* PHOTOS */}
         <div style={{ padding: "16px 16px 0" }}>
