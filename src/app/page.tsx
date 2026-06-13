@@ -217,7 +217,7 @@ export default function LandingPage() {
           </Link>
           <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
             <button onClick={() => setShowAddressModal(true)} style={{ display: "flex", alignItems: "center", gap: 5, height: 28, padding: "0 10px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.13)", background: "rgba(255,255,255,0.06)", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.6)", cursor: "pointer", fontFamily: FONT, whiteSpace: "nowrap" }}>
-              Adresse GZ
+              Adresse Chine
             </button>
             {isLoggedIn ? (
               <Link href="/client/dashboard" style={{ width: 28, height: 28, borderRadius: 7, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
