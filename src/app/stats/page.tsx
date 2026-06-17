@@ -58,66 +58,89 @@ function BarChart({ data, color = "#f97316" }: { data: number[]; color?: string 
 
 export default function StatsPage() {
   const router = useRouter();
-  const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({ china: 0, transit: 0, lome: 0, delivered: 0 });
+  const [typeCount, setTypeCount] = useState({ ORDINAIRE: 0, EXPRESS: 0, COLIS_BATTERIE: 0 });
+  const [revenue, setRevenue] = useState(0);
+  const [avgWeight, setAvgWeight] = useState<string>("—");
+  const [weeklyData, setWeeklyData] = useState<number[]>(Array(8).fill(0));
+  const [topClients, setTopClients] = useState<[string, number][]>([]);
 
   useEffect(() => {
-    async function fetchPackages() {
-      const { data, error } = await supabase
+    async function fetchStats() {
+      // 1. Exact counts via DB — bypasses 1000-row limit
+      const [
+        { count: totalCount },
+        { count: chinaCount },
+        { count: transitCount },
+        { count: lomeCount },
+        { count: deliveredCount },
+        { count: ordCount },
+        { count: expCount },
+        { count: batCount },
+      ] = await Promise.all([
+        supabase.from("packages").select("*", { count: "exact", head: true }),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("status", "RECU_CHINE"),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("status", "EN_TRANSIT"),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("status", "ARRIVE_LOME"),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("status", "LIVRE"),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("shipping_type", "ORDINAIRE"),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("shipping_type", "EXPRESS"),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("shipping_type", "COLIS_BATTERIE"),
+      ]);
+
+      setTotal(totalCount || 0);
+      setCounts({ china: chinaCount || 0, transit: transitCount || 0, lome: lomeCount || 0, delivered: deliveredCount || 0 });
+      setTypeCount({ ORDINAIRE: ordCount || 0, EXPRESS: expCount || 0, COLIS_BATTERIE: batCount || 0 });
+
+      // 2. Revenue + avg weight — only LIVRE packages (bounded)
+      const { data: livrePkgs } = await supabase
         .from("packages")
-        .select("status, shipping_type, weight_kg, created_at, customer_name, customer_phone");
-      if (!error) setPackages(data || []);
+        .select("weight_kg, shipping_type")
+        .eq("status", "LIVRE")
+        .not("weight_kg", "is", null);
+
+      if (livrePkgs && livrePkgs.length > 0) {
+        const rev = livrePkgs.reduce((acc, p) => acc + (p.weight_kg * (PRICE_MAP[p.shipping_type] ?? 10000)), 0);
+        const avg = (livrePkgs.reduce((a, p) => a + p.weight_kg, 0) / livrePkgs.length).toFixed(1);
+        setRevenue(rev);
+        setAvgWeight(avg);
+      }
+
+      // 3. Weekly data — last 8 weeks only (bounded date range)
+      const weekStart8 = getWeekStart(7);
+      const { data: recentPkgs } = await supabase
+        .from("packages")
+        .select("created_at")
+        .gte("created_at", weekStart8.toISOString());
+
+      if (recentPkgs) {
+        const weekly = Array.from({ length: 8 }, (_, i) => {
+          const start = getWeekStart(7 - i);
+          const end = getWeekStart(6 - i);
+          return recentPkgs.filter(p => { const d = new Date(p.created_at); return d >= start && d < end; }).length;
+        });
+        setWeeklyData(weekly);
+      }
+
+      // 4. Top clients — fetch all customer_names (small payload)
+      const { data: clientPkgs } = await supabase
+        .from("packages")
+        .select("customer_name")
+        .not("customer_name", "is", null)
+        .limit(99999);
+
+      if (clientPkgs) {
+        const clientMap: Record<string, number> = {};
+        clientPkgs.forEach(p => { if (p.customer_name) clientMap[p.customer_name] = (clientMap[p.customer_name] || 0) + 1; });
+        setTopClients(Object.entries(clientMap).sort((a, b) => b[1] - a[1]).slice(0, 5));
+      }
+
       setLoading(false);
     }
-    fetchPackages();
+    fetchStats();
   }, []);
-
-  const total = packages.length;
-  const counts = {
-    china:     packages.filter(p => p.status === "RECU_CHINE").length,
-    transit:   packages.filter(p => p.status === "EN_TRANSIT").length,
-    lome:      packages.filter(p => p.status === "ARRIVE_LOME").length,
-    delivered: packages.filter(p => p.status === "LIVRE").length,
-  };
-
-  // Revenue estimate (livré seulement)
-  const revenue = packages
-    .filter(p => p.status === "LIVRE" && p.weight_kg)
-    .reduce((acc, p) => acc + (p.weight_kg * (PRICE_MAP[p.shipping_type] ?? 10000)), 0);
-
-  // Weekly packages — last 8 weeks
-  const weeklyData = Array.from({ length: 8 }, (_, i) => {
-    const weekStart = getWeekStart(7 - i);
-    const weekEnd = getWeekStart(6 - i);
-    return packages.filter(p => {
-      const d = new Date(p.created_at);
-      return d >= weekStart && d < weekEnd;
-    }).length;
-  });
-
-  // Top clients
-  const clientMap: Record<string, number> = {};
-  packages.forEach(p => {
-    if (p.customer_name) {
-      clientMap[p.customer_name] = (clientMap[p.customer_name] || 0) + 1;
-    }
-  });
-  const topClients = Object.entries(clientMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
-  // Avg weight
-  const withWeight = packages.filter(p => p.weight_kg);
-  const avgWeight = withWeight.length > 0
-    ? (withWeight.reduce((a, p) => a + p.weight_kg, 0) / withWeight.length).toFixed(1)
-    : "—";
-
-  // Shipping type breakdown
-  const typeCount = {
-    ORDINAIRE:      packages.filter(p => p.shipping_type === "ORDINAIRE").length,
-    EXPRESS:        packages.filter(p => p.shipping_type === "EXPRESS").length,
-    COLIS_BATTERIE: packages.filter(p => p.shipping_type === "COLIS_BATTERIE").length,
-  };
 
   return (
     <div className="container" style={{ paddingBottom: "120px" }}>
