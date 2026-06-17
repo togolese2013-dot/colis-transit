@@ -178,9 +178,12 @@ function PackageHistory() {
       .channel('pkg-claims-chine')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'packages' }, (payload) => {
         const updated = payload.new as any;
+        // Notification only for claim events: package still in China + customer_name just set
+        // Avoids false notifications when Lomé changes status on packages not in current page
         const existing = packagesRef.current.find(p => p.id === updated.id);
-        const wasUnknown = !existing || !existing.customer_name;
-        if (wasUnknown && updated.customer_name) {
+        const wasUnknownInPage = existing && !existing.customer_name;
+        const isClaimEvent = updated.status === 'RECU_CHINE' && updated.customer_name && wasUnknownInPage;
+        if (isClaimEvent) {
           setNotifications(prev => {
             const next = [{ id: updated.id, tracking: updated.tracking_number, name: updated.customer_name, phone: updated.customer_phone || null, time: new Date() }, ...prev];
             try { localStorage.setItem('chine_notifications', JSON.stringify(next)); } catch {}
