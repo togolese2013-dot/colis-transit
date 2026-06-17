@@ -289,7 +289,7 @@ function PackageHistory() {
                 ) : (
                   <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
                     {notifications.map((n, i) => (
-                      <div key={i} onClick={() => { setNotifOpen(false); router.push(`/edit/${n.id}`); }}
+                      <div key={i} onClick={() => { setNotifOpen(false); saveNotifications(notifications.filter((_, j) => j !== i)); router.push(`/edit/${n.id}`); }}
                         style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)', background: i === 0 ? 'var(--accent-subtle)' : 'var(--bg)', cursor: 'pointer', transition: 'background 0.1s' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-subtle)')}
                         onMouseLeave={e => (e.currentTarget.style.background = i === 0 ? 'var(--accent-subtle)' : 'var(--bg)')}
