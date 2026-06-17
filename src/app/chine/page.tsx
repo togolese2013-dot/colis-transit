@@ -111,9 +111,11 @@ export default function PackageHistory() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const isArchived = (pkg: any) => !!pkg.archived_at || pkg.status === 'ARRIVE_LOME' || pkg.status === 'LIVRE';
+
   const filteredPackages = packages.filter(pkg => {
-    if (!showArchived && pkg.archived_at) return false;
-    if (showArchived && !pkg.archived_at) return false;
+    if (!showArchived && isArchived(pkg)) return false;
+    if (showArchived && !isArchived(pkg)) return false;
     const matchesSearch =
       pkg.tracking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (pkg.item_name && pkg.item_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -139,9 +141,9 @@ export default function PackageHistory() {
 
   const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); setShowArchived(false); setPage(1); };
 
-  const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE' && !p.archived_at).length;
-  const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT' && !p.archived_at).length;
-  const archivedCount  = packages.filter(p => p.archived_at).length;
+  const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE').length;
+  const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT').length;
+  const archivedCount  = packages.filter(p => isArchived(p)).length;
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
