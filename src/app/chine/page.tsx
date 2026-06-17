@@ -308,7 +308,7 @@ export default function PackageHistory() {
         </div>
       </div>
 
-      {/* Search + filter */}
+      {/* Search + type filter + filtres */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.875rem' }}>
         <div className="search-wrap" style={{ flex: 1, marginBottom: 0 }}>
           <span className="search-ico"><Search size={16} /></span>
@@ -320,6 +320,17 @@ export default function PackageHistory() {
             onChange={(e) => { setSearchQuery(e.target.value); goToPage(1); }}
           />
         </div>
+        <select
+          className="form-input form-select"
+          value={filterShipping}
+          onChange={(e) => { setFilterShipping(e.target.value); goToPage(1); }}
+          style={{ flexShrink: 0, height: '42px', padding: '0 2rem 0 0.75rem', fontSize: '0.8125rem', fontWeight: '600', minWidth: 0 }}
+        >
+          <option value="">Tous ({packages.filter(p => !isArchived(p)).length})</option>
+          <option value="ORDINAIRE">🚢 Ordinaire ({packages.filter(p => p.shipping_type === 'ORDINAIRE' && !isArchived(p)).length})</option>
+          <option value="EXPRESS">✈️ Express ({packages.filter(p => p.shipping_type === 'EXPRESS' && !isArchived(p)).length})</option>
+          <option value="COLIS_BATTERIE">🔋 Batterie ({packages.filter(p => p.shipping_type === 'COLIS_BATTERIE' && !isArchived(p)).length})</option>
+        </select>
         <button
           className={`filter-chip ${hasAdvancedFilters ? 'active' : ''}`}
           onClick={() => setFilterDrawerOpen(true)}
@@ -329,30 +340,6 @@ export default function PackageHistory() {
           Filtres
           {hasAdvancedFilters && <span style={{ position: 'absolute', top: '-3px', right: '-3px', width: '8px', height: '8px', background: 'var(--accent)', borderRadius: '50%', border: '2px solid white' }} />}
         </button>
-      </div>
-
-      {/* Shipping type chips */}
-      <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.875rem', flexWrap: 'wrap' }}>
-        {([
-          ['', 'Tous'],
-          ['ORDINAIRE', '🚢 Ordinaire'],
-          ['EXPRESS', '✈️ Express'],
-          ['COLIS_BATTERIE', '🔋 Batterie'],
-        ] as [string, string][]).map(([val, lbl]) => (
-          <button
-            key={val}
-            className={`filter-chip${filterShipping === val ? ' active' : ''}`}
-            onClick={() => { setFilterShipping(val); goToPage(1); }}
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            {lbl}
-            {val !== '' && (
-              <span style={{ marginLeft: '0.25rem', fontSize: '0.6875rem', opacity: 0.75 }}>
-                ({packages.filter(p => p.shipping_type === val).length})
-              </span>
-            )}
-          </button>
-        ))}
       </div>
 
       {/* Archive toggle */}
