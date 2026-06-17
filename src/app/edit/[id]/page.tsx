@@ -351,6 +351,55 @@ export default function EditPackage() {
         )}
       </div>
 
+      {/* Historique de traçabilité */}
+      {(pkg.created_by || pkg.transit_by || pkg.received_by || pkg.delivered_by) && (() => {
+        const statusOrder = ['RECU_CHINE', 'EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'];
+        const currentIdx = statusOrder.indexOf(pkg.status);
+        const steps = [
+          { emoji: '📦', label: 'Reçu en Chine', actor: pkg.created_by, date: pkg.created_at, stepIdx: 0 },
+          { emoji: '✈️',  label: 'En Transit',    actor: pkg.transit_by,   date: null, stepIdx: 1 },
+          { emoji: '🏠', label: 'Arrivé à Lomé', actor: pkg.received_by,  date: null, stepIdx: 2 },
+          { emoji: '✅', label: 'Livré',          actor: pkg.delivered_by, date: null, stepIdx: 3 },
+        ];
+        return (
+          <div className="card" style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.6875rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)', marginBottom: '0.875rem' }}>Historique</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {steps.map(({ emoji, label, actor, date, stepIdx }, i) => {
+                const done = stepIdx <= currentIdx;
+                return (
+                  <div key={label} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                    {/* Line + dot */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: done ? 'var(--accent)' : 'var(--bg-subtle)', border: `2px solid ${done ? 'var(--accent)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', flexShrink: 0 }}>
+                        {done && <span style={{ color: 'white', fontSize: '0.5rem' }}>✓</span>}
+                      </div>
+                      {i < steps.length - 1 && (
+                        <div style={{ width: '2px', flex: 1, minHeight: '20px', background: stepIdx < currentIdx ? 'var(--accent)' : 'var(--border)', margin: '2px 0' }} />
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div style={{ paddingBottom: i < steps.length - 1 ? '0.875rem' : 0, flex: 1 }}>
+                      <div style={{ fontSize: '0.8125rem', fontWeight: done ? '700' : '500', color: done ? 'var(--text-1)' : 'var(--text-3)' }}>
+                        {emoji} {label}
+                      </div>
+                      {done && (actor || date) && (
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginTop: '0.125rem' }}>
+                          {actor && <span style={{ fontWeight: '600', color: 'var(--accent)' }}>{actor}</span>}
+                          {actor && date && ' · '}
+                          {date && new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: undefined })}
+                          {date && ' ' + new Date(date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Notes internes */}
       <div className="card" style={{ marginBottom: '1rem' }}>
         <label className="form-label" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
