@@ -11,6 +11,19 @@ import GlobalSearch from "@/components/GlobalSearch";
 // Only fetch columns needed for the list view
 const LIST_COLS = 'id,tracking_number,customer_name,customer_phone,status,shipping_type,created_at,archived_at,created_by,transit_by';
 
+const CACHE_KEY = 'chine_cache_v1';
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function writeCache(data: { packages: any[]; stats: any; totalCount: number }) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
+}
+
 const getBadgeClass = (status: string) => {
   switch (status) {
     case 'RECU_CHINE':  return 'badge-received';
@@ -45,10 +58,11 @@ function PackageHistory() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { username, initials } = useCurrentUser();
-  const [packages, setPackages] = useState<any[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [stats, setStats] = useState({ recu: 0, transit: 0, archived: 0 });
-  const [loading, setLoading] = useState(true);
+  const [packages, setPackages] = useState<any[]>(() => readCache()?.packages ?? []);
+  const [totalCount, setTotalCount] = useState<number>(() => readCache()?.totalCount ?? 0);
+  const [stats, setStats] = useState(() => readCache()?.stats ?? { recu: 0, transit: 0, archived: 0 });
+  // loading=false if cache exists — background refresh, no spinner
+  const [loading, setLoading] = useState(() => !readCache());
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -106,7 +120,8 @@ function PackageHistory() {
     let cancelled = false;
 
     async function fetchData() {
-      setLoading(true);
+      // Don't show spinner if we have cached data
+      if (packages.length === 0) setLoading(true);
 
       // Stats counts (independent of search/shipping/activeFilter)
       const [{ count: recuCount }, { count: transitCount }, { count: archCount }] = await Promise.all([
@@ -118,7 +133,8 @@ function PackageHistory() {
           .or('archived_at.not.is.null,status.in.(ARRIVE_LOME,LIVRE)'),
       ]);
 
-      if (!cancelled) setStats({ recu: recuCount || 0, transit: transitCount || 0, archived: archCount || 0 });
+      const newStats = { recu: recuCount || 0, transit: transitCount || 0, archived: archCount || 0 };
+      if (!cancelled) setStats(newStats);
 
       // Paginated main query
       let q = supabase.from('packages').select(LIST_COLS, { count: 'exact' });
@@ -139,9 +155,15 @@ function PackageHistory() {
       const { data, count, error } = await q;
 
       if (!cancelled && !error) {
-        setPackages(data || []);
-        packagesRef.current = data || [];
-        setTotalCount(count || 0);
+        const freshPackages = data || [];
+        const freshCount = count || 0;
+        setPackages(freshPackages);
+        packagesRef.current = freshPackages;
+        setTotalCount(freshCount);
+        // Cache only default view (page 1, no filters)
+        if (!showArchived && !filterShipping && !activeFilter && !debouncedSearch && page === 1) {
+          writeCache({ packages: freshPackages, stats: newStats, totalCount: freshCount });
+        }
       }
       if (!cancelled) setLoading(false);
     }
@@ -373,8 +395,20 @@ function PackageHistory() {
       </div>
 
       {/* Package list */}
-      {loading ? (
-        <div className="loading-state">Chargement...</div>
+      {loading && packages.length === 0 ? (
+        // Skeleton — shown only on first load (no cache)
+        <div>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="pkg-item" style={{ marginBottom: '0.5rem', gap: '0.75rem' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div className="skeleton" style={{ height: '14px', width: '55%' }} />
+                <div className="skeleton" style={{ height: '11px', width: '35%' }} />
+                <div className="skeleton" style={{ height: '10px', width: '25%' }} />
+              </div>
+              <div className="skeleton" style={{ height: '28px', width: '72px', borderRadius: '20px' }} />
+            </div>
+          ))}
+        </div>
       ) : packages.length === 0 ? (
         <div className="empty-state">
           <div className="empty-title">Aucun colis</div>
