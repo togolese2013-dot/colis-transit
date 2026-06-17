@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { supabase } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { verifyToken, COOKIE_NAME } from '@/lib/auth'
 import { notifyClientArriveLome, notifyClientEnTransit } from '@/lib/whatsapp'
 
@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Fetch package before update (need phone/name for notification)
-    const { data: pkg, error: fetchError } = await supabase
+    const { data: pkg, error: fetchError } = await supabaseServer
       .from('packages')
       .select('id, tracking_number, customer_name, customer_phone, weight_kg, shipping_type, status')
       .eq('id', id)
@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest) {
     if (status === 'ARRIVE_LOME') { updateData.archived_at = new Date().toISOString(); updateData.received_by = session.username }
     if (status === 'LIVRE')        updateData.delivered_by  = session.username
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseServer
       .from('packages')
       .update(updateData)
       .eq('id', id)
