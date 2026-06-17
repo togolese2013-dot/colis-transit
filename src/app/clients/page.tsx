@@ -24,6 +24,7 @@ export default function ClientsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pkgCache, setPkgCache] = useState<Record<string, any[]>>({});
   const [loadingPkgs, setLoadingPkgs] = useState<string | null>(null);
+  const [accountPhones, setAccountPhones] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -31,9 +32,10 @@ export default function ClientsPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const [{ data: custData }, { data: pkgData }] = await Promise.all([
+      const [{ data: custData }, { data: pkgData }, { data: accountData }] = await Promise.all([
         supabase.from('customers').select('*').order('name'),
         supabase.from('packages').select('customer_name').not('customer_name', 'is', null),
+        supabase.from('client_accounts').select('phone'),
       ]);
 
       if (custData) {
@@ -43,6 +45,20 @@ export default function ClientsPage() {
         });
         setCustomers(custData.map(c => ({ ...c, packageCount: countMap[c.name] || 0 })));
       }
+
+      if (accountData) {
+        const phones = new Set<string>();
+        accountData.forEach((a: any) => {
+          if (a.phone) {
+            phones.add(a.phone);
+            // also add suffix variant (last 8 digits)
+            const digits = a.phone.replace(/\D/g, '');
+            if (digits.length >= 8) phones.add(digits.slice(-8));
+          }
+        });
+        setAccountPhones(phones);
+      }
+
       setLoading(false);
     }
     fetchData();
@@ -80,6 +96,12 @@ export default function ClientsPage() {
       case 'LIVRE':       return 'badge-delivered';
       default:            return 'badge-delivered';
     }
+  };
+
+  const hasAccount = (c: Customer) => {
+    if (!c.phone) return false;
+    const digits = c.phone.replace(/\D/g, '');
+    return accountPhones.has(c.phone) || accountPhones.has(digits) || (digits.length >= 8 && accountPhones.has(digits.slice(-8)));
   };
 
   const startEdit = (c: Customer) => {
@@ -220,6 +242,11 @@ export default function ClientsPage() {
                 {(customer.packageCount || 0) > 0 && (
                   <span style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', padding: '0.15rem 0.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <Package size={10} /> {customer.packageCount}
+                  </span>
+                )}
+                {hasAccount(customer) && (
+                  <span style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 'var(--r-full)', padding: '0.15rem 0.5rem', fontSize: '0.6875rem', fontWeight: '700', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+                    <User size={9} /> Compte
                   </span>
                 )}
                 <button
