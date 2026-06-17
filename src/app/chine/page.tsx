@@ -45,6 +45,7 @@ function PackageHistory() {
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [bulkStatus, setBulkStatus] = useState("");
@@ -75,6 +76,14 @@ function PackageHistory() {
     setNotifications(notifs);
     try { localStorage.setItem('chine_notifications', JSON.stringify(notifs)); } catch {}
   };
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!openPopoverId) return;
+    const close = () => setOpenPopoverId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [openPopoverId]);
 
   // Cmd+K global search shortcut
   useEffect(() => {
@@ -423,22 +432,49 @@ function PackageHistory() {
                     </div>
                   )}
                 </div>
-                {!isSelectionMode && (
-                  pkg.status === 'RECU_CHINE' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+                  {/* Actor popover */}
+                  <div style={{ position: 'relative' }}>
                     <button
-                      className="btn btn-primary btn-sm"
-                      onClick={(e) => handleSendInTransit(e, pkg.id)}
-                      style={{ flexShrink: 0 }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpenPopoverId(openPopoverId === pkg.id ? null : pkg.id); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: (pkg.created_by || pkg.transit_by) ? 'var(--accent)' : 'var(--text-3)', display: 'flex', alignItems: 'center' }}
+                      title="Traçabilité"
                     >
-                      <Send size={12} />
-                      Transit
+                      <User size={14} />
                     </button>
-                  ) : (
-                    <span className={`badge ${getBadgeClass(pkg.status)}`} style={{ flexShrink: 0 }}>
-                      {getStatusLabel(pkg.status)}
-                    </span>
-                  )
-                )}
+                    {openPopoverId === pkg.id && (
+                      <div style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 6px)', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 200, minWidth: '180px', padding: '0.625rem 0.875rem', fontSize: '0.75rem' }}>
+                        <div style={{ fontWeight: '800', color: 'var(--text-1)', marginBottom: '0.375rem', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Traçabilité</div>
+                        {[
+                          { label: '📦 Enregistré', value: pkg.created_by },
+                          { label: '✈️ Transit',    value: pkg.transit_by },
+                          { label: '🏠 Reçu Lomé', value: pkg.received_by },
+                          { label: '✅ Livré',      value: pkg.delivered_by },
+                        ].map(({ label, value }) => (
+                          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', padding: '0.125rem 0', color: 'var(--text-2)' }}>
+                            <span style={{ color: 'var(--text-3)' }}>{label}</span>
+                            <span style={{ fontWeight: '700', color: value ? 'var(--text-1)' : 'var(--text-3)' }}>{value || '—'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {!isSelectionMode && (
+                    pkg.status === 'RECU_CHINE' ? (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={(e) => handleSendInTransit(e, pkg.id)}
+                      >
+                        <Send size={12} />
+                        Transit
+                      </button>
+                    ) : (
+                      <span className={`badge ${getBadgeClass(pkg.status)}`}>
+                        {getStatusLabel(pkg.status)}
+                      </span>
+                    )
+                  )}
+                </div>
               </div>
             </Link>
           </div>

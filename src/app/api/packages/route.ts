@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
         photo_urls: photo_urls || [],
         notes: notes || null,
         status: 'RECU_CHINE',
+        created_by: session.username,
       }])
       .select('id, tracking_number')
       .single()
