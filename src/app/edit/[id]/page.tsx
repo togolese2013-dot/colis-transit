@@ -352,7 +352,7 @@ export default function EditPackage() {
       </div>
 
       {/* Historique de traçabilité */}
-      {(pkg.created_by || pkg.transit_by || pkg.received_by || pkg.delivered_by) && (() => {
+      {(() => {
         const statusOrder = ['RECU_CHINE', 'EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'];
         const currentIdx = statusOrder.indexOf(pkg.status);
         const steps = [
