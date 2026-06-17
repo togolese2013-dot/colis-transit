@@ -416,22 +416,6 @@ export default function EditPackage() {
         />
       </div>
 
-      {/* Status form */}
-      <form onSubmit={handleSubmit} className="card">
-        <div className="form-field" style={{ marginBottom: '1rem' }}>
-          <label className="form-label">Modifier le statut</label>
-          <select className="form-input form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="RECU_CHINE">🇨🇳 Reçu en Chine</option>
-            <option value="EN_TRANSIT">🚢 En Transit</option>
-            <option value="ARRIVE_LOME">🇹🇬 Arrivé à Lomé</option>
-            <option value="LIVRE">✅ Livré</option>
-          </select>
-        </div>
-        <button type="submit" className="btn btn-primary btn-full" disabled={saving}>
-          {saving ? <><span className="spinner" />Mise à jour...</> : 'Enregistrer'}
-        </button>
-      </form>
-
       {/* Delete */}
       <div className="card" style={{ marginTop: '1rem', borderColor: 'var(--error-border)' }}>
         <button
