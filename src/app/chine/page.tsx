@@ -1,8 +1,6 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
-
-import React, { useEffect, useState, useRef } from "react";
+import React, { Suspense, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -32,7 +30,15 @@ const getStatusLabel = (status: string) => {
 
 interface ClaimNotif { id: string; tracking: string; name: string; phone: string | null; time: Date; }
 
-export default function PackageHistory() {
+export default function PackageHistoryPage() {
+  return (
+    <Suspense fallback={<div className="loading-state">Chargement...</div>}>
+      <PackageHistory />
+    </Suspense>
+  );
+}
+
+function PackageHistory() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { username, initials } = useCurrentUser();
