@@ -52,14 +52,12 @@ function PackageHistory() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [filterShipping, setFilterShipping] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
-  const [page, setPage] = useState(() => {
-    const p = parseInt(searchParams.get('page') || '1', 10);
-    return isNaN(p) || p < 1 ? 1 : p;
-  });
   const PAGE_SIZE = 20;
 
+  const rawPage = parseInt(searchParams.get('page') || '1', 10);
+  const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+
   const goToPage = (p: number) => {
-    setPage(p);
     router.replace(`/chine?page=${p}`, { scroll: false });
   };
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
