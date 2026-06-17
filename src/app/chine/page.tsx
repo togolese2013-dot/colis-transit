@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Bell, Plus, BarChart2, User, Trash2, Send, Home, Upload, SlidersHorizontal, Users, X } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import GlobalSearch from "@/components/GlobalSearch";
@@ -32,6 +32,7 @@ interface ClaimNotif { id: string; tracking: string; name: string; phone: string
 
 export default function PackageHistory() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { username, initials } = useCurrentUser();
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,8 +48,16 @@ export default function PackageHistory() {
   const [filterWeightMin, setFilterWeightMin] = useState<string>('');
   const [filterWeightMax, setFilterWeightMax] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const p = parseInt(searchParams.get('page') || '1', 10);
+    return isNaN(p) || p < 1 ? 1 : p;
+  });
   const PAGE_SIZE = 20;
+
+  const goToPage = (p: number) => {
+    setPage(p);
+    router.replace(`/chine?page=${p}`, { scroll: false });
+  };
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [notifications, setNotifications] = useState<ClaimNotif[]>(() => {
     try {
@@ -139,7 +148,7 @@ export default function PackageHistory() {
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
   const pagedPackages = filteredPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); setShowArchived(false); setPage(1); };
+  const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); setShowArchived(false); goToPage(1); };
 
   const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE').length;
   const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT').length;
@@ -208,7 +217,7 @@ export default function PackageHistory() {
 
   const toggleFilter = (filter: string) => {
     setActiveFilter(prev => prev === filter ? null : filter);
-    setPage(1);
+    goToPage(1);
   };
 
   return (
@@ -308,7 +317,7 @@ export default function PackageHistory() {
             className="search-input"
             placeholder="Rechercher..."
             value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+            onChange={(e) => { setSearchQuery(e.target.value); goToPage(1); }}
           />
         </div>
         <button
@@ -333,7 +342,7 @@ export default function PackageHistory() {
           <button
             key={val}
             className={`filter-chip${filterShipping === val ? ' active' : ''}`}
-            onClick={() => { setFilterShipping(val); setPage(1); }}
+            onClick={() => { setFilterShipping(val); goToPage(1); }}
             style={{ whiteSpace: 'nowrap' }}
           >
             {lbl}
@@ -350,7 +359,7 @@ export default function PackageHistory() {
       <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.875rem' }}>
         <button
           className={`filter-chip${!showArchived ? ' active' : ''}`}
-          onClick={() => { setShowArchived(false); setPage(1); setActiveFilter(null); }}
+          onClick={() => { setShowArchived(false); goToPage(1); setActiveFilter(null); }}
         >
           Actifs
           <span style={{ marginLeft: '0.25rem', fontSize: '0.6875rem', opacity: 0.75 }}>
@@ -359,7 +368,7 @@ export default function PackageHistory() {
         </button>
         <button
           className={`filter-chip${showArchived ? ' active' : ''}`}
-          onClick={() => { setShowArchived(true); setPage(1); setActiveFilter(null); }}
+          onClick={() => { setShowArchived(true); goToPage(1); setActiveFilter(null); }}
         >
           🗄️ Archivés (Lomé)
           <span style={{ marginLeft: '0.25rem', fontSize: '0.6875rem', opacity: 0.75 }}>
@@ -470,7 +479,7 @@ export default function PackageHistory() {
       {totalPages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '1.25rem 0 0.5rem' }}>
           <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => goToPage(Math.max(1, page - 1))}
             disabled={page === 1}
             style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === 1 ? 'var(--text-3)' : 'var(--text-1)', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}
           >
@@ -480,7 +489,7 @@ export default function PackageHistory() {
             {page} / {totalPages}
           </span>
           <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => goToPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
             style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === totalPages ? 'var(--text-3)' : 'var(--text-1)', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}
           >
