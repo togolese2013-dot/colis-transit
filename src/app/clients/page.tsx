@@ -32,10 +32,10 @@ export default function ClientsPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const [{ data: custData }, { data: pkgData }, { data: accountData }] = await Promise.all([
+      const [{ data: custData }, { data: pkgData }, accountRes] = await Promise.all([
         supabase.from('customers').select('*').order('name'),
         supabase.from('packages').select('customer_name').not('customer_name', 'is', null),
-        supabase.from('client_accounts').select('phone'),
+        fetch('/api/admin/client-phones').then(r => r.ok ? r.json() : { phones: [] }),
       ]);
 
       if (custData) {
@@ -46,18 +46,13 @@ export default function ClientsPage() {
         setCustomers(custData.map(c => ({ ...c, packageCount: countMap[c.name] || 0 })));
       }
 
-      if (accountData) {
-        const phones = new Set<string>();
-        accountData.forEach((a: any) => {
-          if (a.phone) {
-            phones.add(a.phone);
-            // also add suffix variant (last 8 digits)
-            const digits = a.phone.replace(/\D/g, '');
-            if (digits.length >= 8) phones.add(digits.slice(-8));
-          }
-        });
-        setAccountPhones(phones);
-      }
+      const phones = new Set<string>();
+      ((accountRes as any).phones || []).forEach((phone: string) => {
+        phones.add(phone);
+        const digits = phone.replace(/\D/g, '');
+        if (digits.length >= 8) phones.add(digits.slice(-8));
+      });
+      setAccountPhones(phones);
 
       setLoading(false);
     }
