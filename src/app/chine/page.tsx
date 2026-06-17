@@ -46,6 +46,7 @@ export default function PackageHistory() {
   const [filterShipping, setFilterShipping] = useState<string>('');
   const [filterWeightMin, setFilterWeightMin] = useState<string>('');
   const [filterWeightMax, setFilterWeightMax] = useState<string>('');
+  const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
@@ -111,6 +112,8 @@ export default function PackageHistory() {
   }, []);
 
   const filteredPackages = packages.filter(pkg => {
+    if (!showArchived && pkg.archived_at) return false;
+    if (showArchived && !pkg.archived_at) return false;
     const matchesSearch =
       pkg.tracking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (pkg.item_name && pkg.item_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -134,10 +137,11 @@ export default function PackageHistory() {
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
   const pagedPackages = filteredPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); setPage(1); };
+  const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); setShowArchived(false); setPage(1); };
 
-  const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE').length;
-  const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT').length;
+  const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE' && !p.archived_at).length;
+  const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT' && !p.archived_at).length;
+  const archivedCount  = packages.filter(p => p.archived_at).length;
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -338,6 +342,28 @@ export default function PackageHistory() {
             )}
           </button>
         ))}
+      </div>
+
+      {/* Archive toggle */}
+      <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.875rem' }}>
+        <button
+          className={`filter-chip${!showArchived ? ' active' : ''}`}
+          onClick={() => { setShowArchived(false); setPage(1); setActiveFilter(null); }}
+        >
+          Actifs
+          <span style={{ marginLeft: '0.25rem', fontSize: '0.6875rem', opacity: 0.75 }}>
+            ({packages.filter(p => !p.archived_at).length})
+          </span>
+        </button>
+        <button
+          className={`filter-chip${showArchived ? ' active' : ''}`}
+          onClick={() => { setShowArchived(true); setPage(1); setActiveFilter(null); }}
+        >
+          🗄️ Archivés (Lomé)
+          <span style={{ marginLeft: '0.25rem', fontSize: '0.6875rem', opacity: 0.75 }}>
+            ({archivedCount})
+          </span>
+        </button>
       </div>
 
       {/* Section header */}

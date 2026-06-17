@@ -32,10 +32,15 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Colis introuvable' }, { status: 404 })
     }
 
-    // Update status
+    // Update status — archive when package reaches Lomé
+    const updateData: Record<string, unknown> = { status }
+    if (status === 'ARRIVE_LOME') {
+      updateData.archived_at = new Date().toISOString()
+    }
+
     const { error: updateError } = await supabase
       .from('packages')
-      .update({ status })
+      .update(updateData)
       .eq('id', id)
 
     if (updateError) {
