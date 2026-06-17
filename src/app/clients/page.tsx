@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Search, Users, Home, Plus, BarChart2, User, Package, ChevronDown, ChevronUp, Phone } from "lucide-react";
+import { ChevronLeft, Search, Users, Home, Plus, BarChart2, User, Package, ChevronDown, ChevronUp, Phone, Pencil, Trash2, Check, X } from "lucide-react";
 
 interface Customer {
   id: string;
@@ -24,6 +24,10 @@ export default function ClientsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pkgCache, setPkgCache] = useState<Record<string, any[]>>({});
   const [loadingPkgs, setLoadingPkgs] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -75,6 +79,39 @@ export default function ClientsPage() {
       case 'ARRIVE_LOME': return 'badge-arrived';
       case 'LIVRE':       return 'badge-delivered';
       default:            return 'badge-delivered';
+    }
+  };
+
+  const startEdit = (c: Customer) => {
+    setEditingId(c.id);
+    setEditName(c.name);
+    setEditPhone(c.phone || "");
+    setExpandedId(null);
+  };
+
+  const handleEdit = async (customer: Customer) => {
+    const trimName = editName.trim();
+    if (!trimName) return;
+    setIsSaving(true);
+    const oldName = customer.name;
+    const { error } = await supabase.from('customers').update({ name: trimName, phone: editPhone.trim() || null }).eq('id', customer.id);
+    if (!error) {
+      if (trimName !== oldName) {
+        await supabase.from('packages').update({ customer_name: trimName }).eq('customer_name', oldName);
+      }
+      setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, name: trimName, phone: editPhone.trim() || null } : c));
+      setPkgCache({});
+      setEditingId(null);
+    }
+    setIsSaving(false);
+  };
+
+  const handleDelete = async (customer: Customer) => {
+    if (!confirm(`Supprimer le client "${customer.name}" ? Les colis liés ne seront pas supprimés.`)) return;
+    const { error } = await supabase.from('customers').delete().eq('id', customer.id);
+    if (!error) {
+      setCustomers(prev => prev.filter(c => c.id !== customer.id));
+      if (expandedId === customer.id) setExpandedId(null);
     }
   };
 
@@ -135,6 +172,34 @@ export default function ClientsPage() {
       ) : (
         filtered.map(customer => (
           <div key={customer.id} style={{ marginBottom: '0.5rem' }}>
+            {editingId === customer.id ? (
+              <div className="pkg-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.625rem' }}>
+                <input
+                  className="form-input"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  placeholder="Nom du client"
+                  style={{ fontSize: '16px' }}
+                  autoFocus
+                />
+                <input
+                  className="form-input"
+                  value={editPhone}
+                  onChange={e => setEditPhone(e.target.value)}
+                  placeholder="Téléphone"
+                  style={{ fontSize: '16px' }}
+                  type="tel"
+                />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className="btn btn-primary btn-sm" style={{ flex: 1 }} disabled={isSaving} onClick={() => handleEdit(customer)}>
+                    {isSaving ? <span className="spinner" /> : <><Check size={13} /> Enregistrer</>}
+                  </button>
+                  <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => setEditingId(null)}>
+                    <X size={13} /> Annuler
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div
               className="pkg-item"
               style={{ cursor: 'pointer' }}
@@ -151,15 +216,28 @@ export default function ClientsPage() {
                   ) : 'Aucun téléphone'}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                 {(customer.packageCount || 0) > 0 && (
                   <span style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', padding: '0.15rem 0.5rem', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <Package size={10} /> {customer.packageCount}
                   </span>
                 )}
+                <button
+                  onClick={e => { e.stopPropagation(); startEdit(customer); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-3)', display: 'flex', alignItems: 'center' }}
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); handleDelete(customer); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--error)', display: 'flex', alignItems: 'center' }}
+                >
+                  <Trash2 size={14} />
+                </button>
                 {expandedId === customer.id ? <ChevronUp size={16} color="var(--text-3)" /> : <ChevronDown size={16} color="var(--text-3)" />}
               </div>
             </div>
+            )}
 
             {/* Expanded packages */}
             {expandedId === customer.id && (
