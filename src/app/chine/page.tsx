@@ -192,23 +192,18 @@ function PackageHistory() {
     if (selectedIds.length === 0) return;
     if (!confirm(`Supprimer ${selectedIds.length} colis ?`)) return;
     setIsUpdating(true);
-    // Fetch photo URLs before delete
-    const { data: toDelete } = await supabase.from('packages').select('id,photo_url,photo_urls').in('id', selectedIds);
-    const { error } = await supabase.from('packages').delete().in('id', selectedIds);
-    if (!error) {
-      // Cleanup storage
-      const paths: string[] = [];
-      const marker = '/object/public/packages/';
-      for (const pkg of (toDelete || [])) {
-        const urls: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0 ? pkg.photo_urls : pkg.photo_url ? [pkg.photo_url] : [];
-        for (const url of urls) { const idx = url.indexOf(marker); if (idx !== -1) paths.push(url.slice(idx + marker.length)); }
-      }
-      if (paths.length > 0) await supabase.storage.from('packages').remove(paths);
+    const res = await fetch('/api/packages', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds }),
+    });
+    if (res.ok) {
       setSelectedIds([]);
       setIsSelectionMode(false);
       refetch();
     } else {
-      alert("Erreur : " + error.message);
+      const data = await res.json();
+      alert("Erreur : " + (data.error || 'inconnue'));
     }
     setIsUpdating(false);
   };

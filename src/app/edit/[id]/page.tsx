@@ -91,16 +91,16 @@ export default function EditPackage() {
   const handleDelete = async () => {
     if (!confirm(`Supprimer ce colis (${pkg.tracking_number}) ? Cette action est irréversible.`)) return;
     setSaving(true);
-    const { error: delError } = await supabase.from('packages').delete().eq('id', id);
-    if (!delError) {
-      const urls: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0
-        ? pkg.photo_urls : pkg.photo_url ? [pkg.photo_url] : [];
-      const marker = '/object/public/packages/';
-      const paths = urls.map(u => { const i = u.indexOf(marker); return i !== -1 ? u.slice(i + marker.length) : null; }).filter(Boolean) as string[];
-      if (paths.length > 0) await supabase.storage.from('packages').remove(paths);
+    const res = await fetch('/api/packages', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: pkg.id }),
+    });
+    if (res.ok) {
       router.push("/chine");
     } else {
-      alert("Erreur : " + delError.message);
+      const data = await res.json();
+      alert("Erreur : " + (data.error || 'inconnue'));
       setSaving(false);
     }
   };

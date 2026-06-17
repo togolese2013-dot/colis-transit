@@ -130,3 +130,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
+
+// DELETE /api/packages — body: { id } or { ids: string[] }
+export async function DELETE(req: NextRequest) {
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get(COOKIE_NAME)?.value
+    const session = token ? await verifyToken(token) : null
+    if (!session) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
+    const body = await req.json()
+    const ids: string[] = body.ids ?? (body.id ? [body.id] : [])
+    if (ids.length === 0) return NextResponse.json({ error: 'ids requis' }, { status: 400 })
+
+    // Fetch photo URLs before delete for storage cleanup
+    const { data: pkgs } = await supabaseServer
+      .from('packages')
+      .select('id, photo_url, photo_urls')
+      .in('id', ids)
+
+    const { error } = await supabaseServer.from('packages').delete().in('id', ids)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Cleanup storage
+    const paths: string[] = []
+    const marker = '/object/public/packages/'
+    for (const pkg of (pkgs || [])) {
+      const urls: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0
+        ? pkg.photo_urls : pkg.photo_url ? [pkg.photo_url] : []
+      for (const url of urls) {
+        const idx = url.indexOf(marker)
+        if (idx !== -1) paths.push(url.slice(idx + marker.length))
+      }
+    }
+    if (paths.length > 0) {
+      await supabaseServer.storage.from('packages').remove(paths)
+    }
+
+    return NextResponse.json({ success: true, deleted: ids.length })
+  } catch (err) {
+    console.error('[DELETE /api/packages]', err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}
