@@ -59,7 +59,7 @@ export default function LomeDashboard() {
   async function fetchPackages() {
     const { data, error } = await supabase
       .from('packages')
-      .select('*')
+      .select('id,tracking_number,customer_name,customer_phone,status,created_at,created_by,transit_by,received_by,delivered_by')
       .in('status', ['EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'])
       .order('created_at', { ascending: false });
 

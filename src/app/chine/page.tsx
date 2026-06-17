@@ -4,9 +4,12 @@ import React, { Suspense, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Bell, Plus, BarChart2, User, Trash2, Send, Home, Upload, Users, X } from "lucide-react";
+import { Search, Bell, Plus, BarChart2, User, Trash2, Send, Home, Upload, Users } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import GlobalSearch from "@/components/GlobalSearch";
+
+// Only fetch columns needed for the list view
+const LIST_COLS = 'id,tracking_number,customer_name,customer_phone,status,shipping_type,created_at,archived_at,created_by,transit_by';
 
 const getBadgeClass = (status: string) => {
   switch (status) {
@@ -43,8 +46,11 @@ function PackageHistory() {
   const searchParams = useSearchParams();
   const { username, initials } = useCurrentUser();
   const [packages, setPackages] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState({ recu: 0, transit: 0, archived: 0 });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [bulkStatus, setBulkStatus] = useState("");
@@ -52,6 +58,7 @@ function PackageHistory() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [filterShipping, setFilterShipping] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
+  const [fetchKey, setFetchKey] = useState(0);
   const PAGE_SIZE = 20;
 
   const rawPage = parseInt(searchParams.get('page') || '1', 10);
@@ -60,6 +67,9 @@ function PackageHistory() {
   const goToPage = (p: number) => {
     router.replace(`/chine?page=${p}`, { scroll: false });
   };
+
+  const refetch = () => setFetchKey(k => k + 1);
+
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [notifications, setNotifications] = useState<ClaimNotif[]>(() => {
     try {
@@ -76,6 +86,12 @@ function PackageHistory() {
     try { localStorage.setItem('chine_notifications', JSON.stringify(notifs)); } catch {}
   };
 
+  // Debounce search — wait 400ms after typing stops
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(searchQuery); goToPage(1); }, 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
   // Cmd+K global search shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -85,17 +101,57 @@ function PackageHistory() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Main data fetch — server-side paginated + filtered
   useEffect(() => {
-    async function fetchPackages() {
-      const { data, error } = await supabase
-        .from('packages')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!error) { setPackages(data || []); packagesRef.current = data || []; }
-      setLoading(false);
-    }
-    fetchPackages();
+    let cancelled = false;
 
+    async function fetchData() {
+      setLoading(true);
+
+      // Stats counts (independent of search/shipping/activeFilter)
+      const [{ count: recuCount }, { count: transitCount }, { count: archCount }] = await Promise.all([
+        supabase.from('packages').select('*', { count: 'exact', head: true })
+          .eq('status', 'RECU_CHINE').is('archived_at', null).neq('status', 'ARRIVE_LOME').neq('status', 'LIVRE'),
+        supabase.from('packages').select('*', { count: 'exact', head: true })
+          .eq('status', 'EN_TRANSIT').is('archived_at', null),
+        supabase.from('packages').select('*', { count: 'exact', head: true })
+          .or('archived_at.not.is.null,status.in.(ARRIVE_LOME,LIVRE)'),
+      ]);
+
+      if (!cancelled) setStats({ recu: recuCount || 0, transit: transitCount || 0, archived: archCount || 0 });
+
+      // Paginated main query
+      let q = supabase.from('packages').select(LIST_COLS, { count: 'exact' });
+
+      // Archive filter
+      if (!showArchived) {
+        q = q.is('archived_at', null).neq('status', 'ARRIVE_LOME').neq('status', 'LIVRE');
+      } else {
+        q = q.or('archived_at.not.is.null,status.in.(ARRIVE_LOME,LIVRE)');
+      }
+
+      if (filterShipping)  q = q.eq('shipping_type', filterShipping);
+      if (activeFilter)    q = q.eq('status', activeFilter);
+      if (debouncedSearch) q = q.or(`tracking_number.ilike.%${debouncedSearch}%,customer_name.ilike.%${debouncedSearch}%`);
+
+      q = q.order('created_at', { ascending: false }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+      const { data, count, error } = await q;
+
+      if (!cancelled && !error) {
+        setPackages(data || []);
+        packagesRef.current = data || [];
+        setTotalCount(count || 0);
+      }
+      if (!cancelled) setLoading(false);
+    }
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, [showArchived, filterShipping, activeFilter, debouncedSearch, page, fetchKey]);
+
+  // Realtime — notifications only, then refetch
+  useEffect(() => {
     const channel = supabase
       .channel('pkg-claims-chine')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'packages' }, (payload) => {
@@ -109,40 +165,16 @@ function PackageHistory() {
             return next;
           });
         }
-        packagesRef.current = packagesRef.current.map(p => p.id === updated.id ? { ...p, ...updated } : p);
-        setPackages([...packagesRef.current]);
+        refetch();
       })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'packages' }, (payload) => {
-        const deletedId = (payload.old as any).id;
-        packagesRef.current = packagesRef.current.filter(p => p.id !== deletedId);
-        setPackages([...packagesRef.current]);
-      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'packages' }, () => refetch())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'packages' }, () => refetch())
       .subscribe((status) => { console.log('[Chine Realtime]', status); });
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const isArchived = (pkg: any) => !!pkg.archived_at || pkg.status === 'ARRIVE_LOME' || pkg.status === 'LIVRE';
-
-  const filteredPackages = packages.filter(pkg => {
-    if (!showArchived && isArchived(pkg)) return false;
-    if (showArchived && !isArchived(pkg)) return false;
-    const matchesSearch =
-      pkg.tracking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (pkg.item_name && pkg.item_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (pkg.customer_name && pkg.customer_name.toLowerCase().includes(searchQuery.toLowerCase()));
-    if (!matchesSearch) return false;
-    if (activeFilter && pkg.status !== activeFilter) return false;
-    if (filterShipping && pkg.shipping_type !== filterShipping) return false;
-    return true;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
-  const pagedPackages = filteredPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE').length;
-  const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT').length;
-  const archivedCount  = packages.filter(p => isArchived(p)).length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -152,42 +184,29 @@ function PackageHistory() {
     if (!bulkStatus || selectedIds.length === 0) return;
     setIsUpdating(true);
     const { error } = await supabase.from('packages').update({ status: bulkStatus }).in('id', selectedIds);
-    if (!error) {
-      packagesRef.current = packagesRef.current.map(p => selectedIds.includes(p.id) ? { ...p, status: bulkStatus } : p);
-      setPackages([...packagesRef.current]);
-      setSelectedIds([]);
-      setIsSelectionMode(false);
-    }
+    if (!error) { setSelectedIds([]); setIsSelectionMode(false); refetch(); }
     setIsUpdating(false);
-  };
-
-  const deletePhotosFromStorage = async (pkgList: any[]) => {
-    const paths: string[] = [];
-    const marker = '/object/public/packages/';
-    for (const pkg of pkgList) {
-      const urls: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0
-        ? pkg.photo_urls : pkg.photo_url ? [pkg.photo_url] : [];
-      for (const url of urls) {
-        const idx = url.indexOf(marker);
-        if (idx !== -1) paths.push(url.slice(idx + marker.length));
-      }
-    }
-    if (paths.length > 0) await supabase.storage.from('packages').remove(paths);
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     if (!confirm(`Supprimer ${selectedIds.length} colis ?`)) return;
     setIsUpdating(true);
-    const toDelete = packages.filter(p => selectedIds.includes(p.id));
+    // Fetch photo URLs before delete
+    const { data: toDelete } = await supabase.from('packages').select('id,photo_url,photo_urls').in('id', selectedIds);
     const { error } = await supabase.from('packages').delete().in('id', selectedIds);
     if (!error) {
-      await deletePhotosFromStorage(toDelete);
-      const remaining = packages.filter(p => !selectedIds.includes(p.id));
-      packagesRef.current = remaining;
-      setPackages(remaining);
+      // Cleanup storage
+      const paths: string[] = [];
+      const marker = '/object/public/packages/';
+      for (const pkg of (toDelete || [])) {
+        const urls: string[] = Array.isArray(pkg.photo_urls) && pkg.photo_urls.length > 0 ? pkg.photo_urls : pkg.photo_url ? [pkg.photo_url] : [];
+        for (const url of urls) { const idx = url.indexOf(marker); if (idx !== -1) paths.push(url.slice(idx + marker.length)); }
+      }
+      if (paths.length > 0) await supabase.storage.from('packages').remove(paths);
       setSelectedIds([]);
       setIsSelectionMode(false);
+      refetch();
     } else {
       alert("Erreur : " + error.message);
     }
@@ -202,7 +221,7 @@ function PackageHistory() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, status: 'EN_TRANSIT' }),
     });
-    if (res.ok) setPackages(packages.map(p => p.id === id ? { ...p, status: 'EN_TRANSIT' } : p));
+    if (res.ok) refetch();
   };
 
   const toggleFilter = (filter: string) => {
@@ -225,53 +244,46 @@ function PackageHistory() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button
-            onClick={() => setShowGlobalSearch(true)}
-            className="notif-btn"
-            aria-label="Recherche globale"
-            title="Rechercher (⌘K)"
-          >
+          <button onClick={() => setShowGlobalSearch(true)} className="notif-btn" aria-label="Recherche globale" title="Rechercher (⌘K)">
             <Search size={18} />
           </button>
           <div style={{ position: 'relative' }}>
-          <button className="notif-btn" aria-label="Notifications" onClick={() => setNotifOpen(o => !o)}>
-            <Bell size={18} />
-            {notifications.length > 0 && (
-              <span style={{ position: 'absolute', top: '-5px', right: '-5px', minWidth: '18px', height: '18px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: '#ef4444', color: 'white', border: '2px solid white', fontSize: '0.625rem', fontWeight: '800', lineHeight: 1 }}>
-                {notifications.length}
-              </span>
-            )}
-          </button>
-          {notifOpen && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '300px', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 100, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontWeight: '800', fontSize: '0.875rem', color: 'var(--text-1)' }}>Notifications</span>
-                {notifications.length > 0 && (
-                  <button onClick={() => saveNotifications([])} style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--text-3)', cursor: 'pointer', fontWeight: '600' }}>Tout effacer</button>
+            <button className="notif-btn" aria-label="Notifications" onClick={() => setNotifOpen(o => !o)}>
+              <Bell size={18} />
+              {notifications.length > 0 && (
+                <span style={{ position: 'absolute', top: '-5px', right: '-5px', minWidth: '18px', height: '18px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: '#ef4444', color: 'white', border: '2px solid white', fontSize: '0.625rem', fontWeight: '800', lineHeight: 1 }}>
+                  {notifications.length}
+                </span>
+              )}
+            </button>
+            {notifOpen && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '300px', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 100, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontWeight: '800', fontSize: '0.875rem', color: 'var(--text-1)' }}>Notifications</span>
+                  {notifications.length > 0 && (
+                    <button onClick={() => saveNotifications([])} style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--text-3)', cursor: 'pointer', fontWeight: '600' }}>Tout effacer</button>
+                  )}
+                </div>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '0.8125rem' }}>Aucune notification</div>
+                ) : (
+                  <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                    {notifications.map((n, i) => (
+                      <div key={i} onClick={() => { setNotifOpen(false); router.push(`/edit/${n.id}`); }}
+                        style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)', background: i === 0 ? 'var(--accent-subtle)' : 'var(--bg)', cursor: 'pointer', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-subtle)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = i === 0 ? 'var(--accent-subtle)' : 'var(--bg)')}
+                      >
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-2)', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <span style={{ color: 'var(--text-3)', fontWeight: '500' }}>{n.time.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} {n.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                          {' · '}📦 <strong style={{ color: 'var(--text-1)' }}>{n.name}</strong> a réclamé son colis <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: '700' }}>{n.tracking}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              {notifications.length === 0 ? (
-                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-3)', fontSize: '0.8125rem' }}>Aucune notification</div>
-              ) : (
-                <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
-                  {notifications.map((n, i) => (
-                    <div
-                      key={i}
-                      onClick={() => { setNotifOpen(false); router.push(`/edit/${n.id}`); }}
-                      style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)', background: i === 0 ? 'var(--accent-subtle)' : 'var(--bg)', cursor: 'pointer', transition: 'background 0.1s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-subtle)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = i === 0 ? 'var(--accent-subtle)' : 'var(--bg)')}
-                    >
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-2)', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        <span style={{ color: 'var(--text-3)', fontWeight: '500' }}>{n.time.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} {n.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                        {' · '}📦 <strong style={{ color: 'var(--text-1)' }}>{n.name}</strong> a réclamé son colis <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: '700' }}>{n.tracking}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            )}
           </div>
         </div>
       </div>
@@ -281,19 +293,13 @@ function PackageHistory() {
 
       {/* Stats */}
       <div className="stats-row">
-        <div
-          className="stat-tile accent-fill"
-          onClick={() => toggleFilter('RECU_CHINE')}
-          style={activeFilter === 'RECU_CHINE' ? { outline: '3px solid rgba(249,115,22,0.4)', outlineOffset: '2px' } : {}}
-        >
-          <div className="stat-num" style={{ color: 'white' }}>{loading ? '—' : receivedCount}</div>
+        <div className="stat-tile accent-fill" onClick={() => toggleFilter('RECU_CHINE')}
+          style={activeFilter === 'RECU_CHINE' ? { outline: '3px solid rgba(249,115,22,0.4)', outlineOffset: '2px' } : {}}>
+          <div className="stat-num" style={{ color: 'white' }}>{loading ? '—' : stats.recu}</div>
           <div className="stat-lbl" style={{ color: 'rgba(255,255,255,0.75)' }}>Reçu en Chine</div>
         </div>
-        <div
-          className={`stat-tile ${activeFilter === 'EN_TRANSIT' ? 'is-active-blue' : ''}`}
-          onClick={() => toggleFilter('EN_TRANSIT')}
-        >
-          <div className="stat-num">{loading ? '—' : inTransitCount}</div>
+        <div className={`stat-tile ${activeFilter === 'EN_TRANSIT' ? 'is-active-blue' : ''}`} onClick={() => toggleFilter('EN_TRANSIT')}>
+          <div className="stat-num">{loading ? '—' : stats.transit}</div>
           <div className="stat-lbl">En Transit</div>
         </div>
       </div>
@@ -306,28 +312,24 @@ function PackageHistory() {
           className="search-input"
           placeholder="Rechercher..."
           value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); goToPage(1); }}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
       {/* Archive toggle */}
       <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.875rem' }}>
-        <button
-          className={`filter-chip${!showArchived ? ' active' : ''}`}
-          onClick={() => { setShowArchived(false); goToPage(1); setActiveFilter(null); }}
-        >
+        <button className={`filter-chip${!showArchived ? ' active' : ''}`}
+          onClick={() => { setShowArchived(false); goToPage(1); setActiveFilter(null); }}>
           Actifs
           <span style={{ marginLeft: '0.25rem', fontSize: '0.6875rem', opacity: 0.75 }}>
-            ({packages.filter(p => !p.archived_at).length})
+            ({stats.recu + stats.transit})
           </span>
         </button>
-        <button
-          className={`filter-chip${showArchived ? ' active' : ''}`}
-          onClick={() => { setShowArchived(true); goToPage(1); setActiveFilter(null); }}
-        >
+        <button className={`filter-chip${showArchived ? ' active' : ''}`}
+          onClick={() => { setShowArchived(true); goToPage(1); setActiveFilter(null); }}>
           🗄️ Archivés (Lomé)
           <span style={{ marginLeft: '0.25rem', fontSize: '0.6875rem', opacity: 0.75 }}>
-            ({archivedCount})
+            ({stats.archived})
           </span>
         </button>
       </div>
@@ -336,34 +338,25 @@ function PackageHistory() {
       <div className="section-label">
         <span className="section-title">
           Colis enregistrés
-          {filteredPackages.length > 0 && (
+          {totalCount > 0 && (
             <span style={{ marginLeft: '0.5rem', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', padding: '0.1rem 0.5rem', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-3)' }}>
-              {filteredPackages.length}
+              {totalCount}
             </span>
           )}
         </span>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {isSelectionMode && selectedIds.length > 0 && (
-            <button
-              className="btn btn-danger btn-sm"
-              onClick={handleBulkDelete}
-              disabled={isUpdating}
-            >
-              <Trash2 size={13} />
-              {selectedIds.length}
+            <button className="btn btn-danger btn-sm" onClick={handleBulkDelete} disabled={isUpdating}>
+              <Trash2 size={13} />{selectedIds.length}
             </button>
           )}
           {!isSelectionMode && (
             <Link href="/import" style={{ textDecoration: 'none' }}>
-              <button className="btn btn-secondary btn-sm" type="button">
-                <Upload size={13} /> Import
-              </button>
+              <button className="btn btn-secondary btn-sm" type="button"><Upload size={13} /> Import</button>
             </Link>
           )}
-          <button
-            className={`btn btn-sm ${isSelectionMode ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => { setIsSelectionMode(!isSelectionMode); setSelectedIds([]); }}
-          >
+          <button className={`btn btn-sm ${isSelectionMode ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => { setIsSelectionMode(!isSelectionMode); setSelectedIds([]); }}>
             {isSelectionMode ? 'Annuler' : 'Sélectionner'}
           </button>
         </div>
@@ -377,37 +370,31 @@ function PackageHistory() {
           onChange={(e) => { setFilterShipping(e.target.value); goToPage(1); }}
           style={{ width: '100%', height: '42px', padding: '0 2rem 0 0.75rem', fontSize: '0.8125rem', fontWeight: '600' }}
         >
-          <option value="">Tous ({packages.filter(p => !isArchived(p)).length})</option>
-          <option value="ORDINAIRE">🚢 Ordinaire ({packages.filter(p => p.shipping_type === 'ORDINAIRE' && !isArchived(p)).length})</option>
-          <option value="EXPRESS">✈️ Express ({packages.filter(p => p.shipping_type === 'EXPRESS' && !isArchived(p)).length})</option>
-          <option value="COLIS_BATTERIE">🔋 Batterie ({packages.filter(p => p.shipping_type === 'COLIS_BATTERIE' && !isArchived(p)).length})</option>
+          <option value="">Tous les types</option>
+          <option value="ORDINAIRE">🚢 Ordinaire</option>
+          <option value="EXPRESS">✈️ Express</option>
+          <option value="COLIS_BATTERIE">🔋 Batterie</option>
         </select>
       </div>
 
       {/* Package list */}
       {loading ? (
         <div className="loading-state">Chargement...</div>
-      ) : filteredPackages.length === 0 ? (
+      ) : packages.length === 0 ? (
         <div className="empty-state">
           <div className="empty-title">Aucun colis</div>
-          <div className="empty-text">{searchQuery ? 'Aucun résultat pour cette recherche.' : 'Commencez par ajouter un colis.'}</div>
+          <div className="empty-text">{debouncedSearch ? 'Aucun résultat pour cette recherche.' : 'Commencez par ajouter un colis.'}</div>
         </div>
       ) : (
-        pagedPackages.map((pkg) => (
+        packages.map((pkg) => (
           <div key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             {isSelectionMode && (
-              <input
-                type="checkbox"
-                checked={selectedIds.includes(pkg.id)}
-                onChange={() => toggleSelection(pkg.id)}
-                style={{ width: '18px', height: '18px', accentColor: 'var(--accent)', flexShrink: 0 }}
-              />
+              <input type="checkbox" checked={selectedIds.includes(pkg.id)} onChange={() => toggleSelection(pkg.id)}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--accent)', flexShrink: 0 }} />
             )}
-            <Link
-              href={isSelectionMode ? '#' : `/edit/${pkg.id}`}
+            <Link href={isSelectionMode ? '#' : `/edit/${pkg.id}`}
               style={{ textDecoration: 'none', color: 'inherit', flex: 1 }}
-              onClick={isSelectionMode ? (e) => { e.preventDefault(); toggleSelection(pkg.id); } : undefined}
-            >
+              onClick={isSelectionMode ? (e) => { e.preventDefault(); toggleSelection(pkg.id); } : undefined}>
               <div className={`pkg-item ${selectedIds.includes(pkg.id) ? 'is-selected' : ''}`}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="pkg-number">{pkg.tracking_number}</div>
@@ -426,17 +413,11 @@ function PackageHistory() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
                   {!isSelectionMode && (
                     pkg.status === 'RECU_CHINE' ? (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={(e) => handleSendInTransit(e, pkg.id)}
-                      >
-                        <Send size={12} />
-                        Transit
+                      <button className="btn btn-primary btn-sm" onClick={(e) => handleSendInTransit(e, pkg.id)}>
+                        <Send size={12} />Transit
                       </button>
                     ) : (
-                      <span className={`badge ${getBadgeClass(pkg.status)}`}>
-                        {getStatusLabel(pkg.status)}
-                      </span>
+                      <span className={`badge ${getBadgeClass(pkg.status)}`}>{getStatusLabel(pkg.status)}</span>
                     )
                   )}
                 </div>
@@ -449,21 +430,13 @@ function PackageHistory() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '1.25rem 0 0.5rem' }}>
-          <button
-            onClick={() => goToPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === 1 ? 'var(--text-3)' : 'var(--text-1)', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}
-          >
+          <button onClick={() => goToPage(Math.max(1, page - 1))} disabled={page === 1}
+            style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === 1 ? 'var(--text-3)' : 'var(--text-1)', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
             ← Préc.
           </button>
-          <span style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--text-2)' }}>
-            {page} / {totalPages}
-          </span>
-          <button
-            onClick={() => goToPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
-            style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === totalPages ? 'var(--text-3)' : 'var(--text-1)', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}
-          >
+          <span style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--text-2)' }}>{page} / {totalPages}</span>
+          <button onClick={() => goToPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}
+            style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === totalPages ? 'var(--text-3)' : 'var(--text-1)', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
             Suiv. →
           </button>
         </div>
@@ -474,24 +447,16 @@ function PackageHistory() {
         <div className="bulk-bar">
           <div className="bulk-bar-title">{selectedIds.length} colis sélectionné{selectedIds.length > 1 ? 's' : ''}</div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <select
-              className="form-input form-select"
-              style={{ flex: 1, padding: '0.625rem 2.5rem 0.625rem 0.875rem', fontSize: '0.875rem' }}
-              value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value)}
-            >
+            <select className="form-input form-select" style={{ flex: 1, padding: '0.625rem 2.5rem 0.625rem 0.875rem', fontSize: '0.875rem' }}
+              value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
               <option value="">Changer le statut...</option>
               <option value="RECU_CHINE">Reçu en Chine</option>
               <option value="EN_TRANSIT">En Transit</option>
               <option value="ARRIVE_LOME">Arrivé à Lomé</option>
               <option value="LIVRE">Livré</option>
             </select>
-            <button
-              className="btn btn-primary"
-              style={{ padding: '0.625rem 1rem', flexShrink: 0 }}
-              disabled={!bulkStatus || isUpdating}
-              onClick={handleBulkUpdate}
-            >
+            <button className="btn btn-primary" style={{ padding: '0.625rem 1rem', flexShrink: 0 }}
+              disabled={!bulkStatus || isUpdating} onClick={handleBulkUpdate}>
               {isUpdating ? <span className="spinner" /> : 'OK'}
             </button>
           </div>
