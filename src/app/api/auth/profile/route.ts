@@ -130,12 +130,28 @@ export async function GET() {
       ? ['chine', 'lome']
       : (admin.permissions ?? ['chine', 'lome'])
 
-    return NextResponse.json({
+    const jwtPerms: string[] = Array.isArray(session.permissions) ? session.permissions : []
+    const needsRefresh = JSON.stringify([...permissions].sort()) !== JSON.stringify([...jwtPerms].sort())
+
+    const res = NextResponse.json({
       username: admin.username,
       displayName: admin.display_name || admin.username,
       role: admin.role || 'admin',
       permissions,
     })
+
+    if (needsRefresh) {
+      const freshToken = await signToken({ id: session.id, username: admin.username, role: admin.role || 'admin', permissions })
+      res.cookies.set(COOKIE_NAME, freshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: COOKIE_MAX_AGE,
+        path: '/',
+      })
+    }
+
+    return res
   } catch (err) {
     console.error('[profile GET]', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
