@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Bell, Plus, BarChart2, User, Trash2, Send, Home, Upload, SlidersHorizontal, Users, X } from "lucide-react";
+import { Search, Bell, Plus, BarChart2, User, Trash2, Send, Home, Upload, Users, X } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import GlobalSearch from "@/components/GlobalSearch";
 
@@ -50,11 +50,7 @@ function PackageHistory() {
   const [bulkStatus, setBulkStatus] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [filterDateRange, setFilterDateRange] = useState<string>('all');
   const [filterShipping, setFilterShipping] = useState<string>('');
-  const [filterWeightMin, setFilterWeightMin] = useState<string>('');
-  const [filterWeightMax, setFilterWeightMax] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(() => {
     const p = parseInt(searchParams.get('page') || '1', 10);
@@ -140,23 +136,11 @@ function PackageHistory() {
     if (!matchesSearch) return false;
     if (activeFilter && pkg.status !== activeFilter) return false;
     if (filterShipping && pkg.shipping_type !== filterShipping) return false;
-    if (filterWeightMin && !(pkg.weight_kg >= parseFloat(filterWeightMin))) return false;
-    if (filterWeightMax && !(pkg.weight_kg <= parseFloat(filterWeightMax))) return false;
-    if (filterDateRange !== 'all') {
-      const created = new Date(pkg.created_at);
-      const now = new Date();
-      if (filterDateRange === 'today' && created.toDateString() !== now.toDateString()) return false;
-      if (filterDateRange === '7d' && (now.getTime() - created.getTime()) > 7 * 86400000) return false;
-      if (filterDateRange === '30d' && (now.getTime() - created.getTime()) > 30 * 86400000) return false;
-    }
     return true;
   });
 
-  const hasAdvancedFilters = filterDateRange !== 'all' || filterShipping !== '' || filterWeightMin !== '' || filterWeightMax !== '';
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
   const pagedPackages = filteredPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const resetFilters = () => { setFilterDateRange('all'); setFilterShipping(''); setFilterWeightMin(''); setFilterWeightMax(''); setShowArchived(false); goToPage(1); };
 
   const receivedCount  = packages.filter(p => p.status === 'RECU_CHINE').length;
   const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT').length;
@@ -316,38 +300,16 @@ function PackageHistory() {
         </div>
       </div>
 
-      {/* Search + type filter + filtres */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.875rem' }}>
-        <div className="search-wrap" style={{ flex: 1, marginBottom: 0 }}>
-          <span className="search-ico"><Search size={16} /></span>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Rechercher..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); goToPage(1); }}
-          />
-        </div>
-        <select
-          className="form-input form-select"
-          value={filterShipping}
-          onChange={(e) => { setFilterShipping(e.target.value); goToPage(1); }}
-          style={{ flexShrink: 0, height: '42px', padding: '0 2rem 0 0.75rem', fontSize: '0.8125rem', fontWeight: '600', minWidth: 0 }}
-        >
-          <option value="">Tous ({packages.filter(p => !isArchived(p)).length})</option>
-          <option value="ORDINAIRE">🚢 Ordinaire ({packages.filter(p => p.shipping_type === 'ORDINAIRE' && !isArchived(p)).length})</option>
-          <option value="EXPRESS">✈️ Express ({packages.filter(p => p.shipping_type === 'EXPRESS' && !isArchived(p)).length})</option>
-          <option value="COLIS_BATTERIE">🔋 Batterie ({packages.filter(p => p.shipping_type === 'COLIS_BATTERIE' && !isArchived(p)).length})</option>
-        </select>
-        <button
-          className={`filter-chip ${hasAdvancedFilters ? 'active' : ''}`}
-          onClick={() => setFilterDrawerOpen(true)}
-          style={{ flexShrink: 0, position: 'relative' }}
-        >
-          <SlidersHorizontal size={14} />
-          Filtres
-          {hasAdvancedFilters && <span style={{ position: 'absolute', top: '-3px', right: '-3px', width: '8px', height: '8px', background: 'var(--accent)', borderRadius: '50%', border: '2px solid white' }} />}
-        </button>
+      {/* Search */}
+      <div className="search-wrap" style={{ marginBottom: '0.875rem' }}>
+        <span className="search-ico"><Search size={16} /></span>
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Rechercher..."
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); goToPage(1); }}
+        />
       </div>
 
       {/* Archive toggle */}
@@ -407,6 +369,21 @@ function PackageHistory() {
             {isSelectionMode ? 'Annuler' : 'Sélectionner'}
           </button>
         </div>
+      </div>
+
+      {/* Shipping type dropdown */}
+      <div style={{ marginBottom: '0.875rem' }}>
+        <select
+          className="form-input form-select"
+          value={filterShipping}
+          onChange={(e) => { setFilterShipping(e.target.value); goToPage(1); }}
+          style={{ width: '100%', height: '42px', padding: '0 2rem 0 0.75rem', fontSize: '0.8125rem', fontWeight: '600' }}
+        >
+          <option value="">Tous ({packages.filter(p => !isArchived(p)).length})</option>
+          <option value="ORDINAIRE">🚢 Ordinaire ({packages.filter(p => p.shipping_type === 'ORDINAIRE' && !isArchived(p)).length})</option>
+          <option value="EXPRESS">✈️ Express ({packages.filter(p => p.shipping_type === 'EXPRESS' && !isArchived(p)).length})</option>
+          <option value="COLIS_BATTERIE">🔋 Batterie ({packages.filter(p => p.shipping_type === 'COLIS_BATTERIE' && !isArchived(p)).length})</option>
+        </select>
       </div>
 
       {/* Package list */}
@@ -521,55 +498,6 @@ function PackageHistory() {
           </div>
         </div>
       )}
-
-      {/* Filter drawer */}
-      <div className={`drawer-overlay ${filterDrawerOpen ? 'open' : ''}`} onClick={() => setFilterDrawerOpen(false)} />
-      <div className={`drawer ${filterDrawerOpen ? 'open' : ''}`}>
-        <div className="drawer-handle" />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <span style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--text-1)' }}>Filtres avancés</span>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {hasAdvancedFilters && (
-              <button className="btn btn-secondary btn-sm" onClick={resetFilters}>
-                <X size={12} /> Réinitialiser
-              </button>
-            )}
-            <button className="btn btn-primary btn-sm" onClick={() => setFilterDrawerOpen(false)}>
-              Appliquer
-            </button>
-          </div>
-        </div>
-
-        {/* Date */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label className="form-label" style={{ marginBottom: '0.625rem' }}>Période</label>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {[['all', 'Tout'], ['today', "Aujourd'hui"], ['7d', '7 jours'], ['30d', '30 jours']].map(([val, lbl]) => (
-              <button key={val} className={`filter-chip ${filterDateRange === val ? 'active' : ''}`} onClick={() => setFilterDateRange(val)}>{lbl}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* Shipping type */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label className="form-label" style={{ marginBottom: '0.625rem' }}>Type d'envoi</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {[['', 'Tous'], ['ORDINAIRE', 'Ordinaire'], ['EXPRESS', 'Express'], ['COLIS_BATTERIE', 'Colis Batterie 🔋']].map(([val, lbl]) => (
-              <button key={val} className={`filter-chip ${filterShipping === val ? 'active' : ''}`} onClick={() => setFilterShipping(val)}>{lbl}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* Weight range */}
-        <div>
-          <label className="form-label" style={{ marginBottom: '0.625rem' }}>Poids (kg)</label>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <input type="number" className="form-input" placeholder="Min" value={filterWeightMin} onChange={e => setFilterWeightMin(e.target.value)} style={{ flex: 1, fontSize: '16px' }} step="0.1" min="0" />
-            <span style={{ color: 'var(--text-3)', fontWeight: '600', flexShrink: 0 }}>→</span>
-            <input type="number" className="form-input" placeholder="Max" value={filterWeightMax} onChange={e => setFilterWeightMax(e.target.value)} style={{ flex: 1, fontSize: '16px' }} step="0.1" min="0" />
-          </div>
-        </div>
-      </div>
 
       {/* Bottom Nav */}
       <nav className="bottom-nav">
