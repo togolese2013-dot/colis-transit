@@ -139,6 +139,7 @@ const AddPackage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasPhoneNameConflict) return;
     setLoading(true);
     setError(null);
 
