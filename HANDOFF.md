@@ -20,74 +20,65 @@ L'application est stable et déployée sur **Vercel**. Domaine : **hamidcargo.co
 - Bouton **Scanner Tracking** (orange) → redirige vers `/scan`
 - **Multi-photos** : plusieurs photos par colis, galerie d'aperçu avec suppression
 - **Auto-complétion client** : dropdown de suggestions (2+ caractères)
-- **Client inconnu** : case à cocher → colis enregistré sans client
+- **Client inconnu** : case à cocher → colis enregistré sans client (`customer_name = null`)
 - Champ tracking pré-rempli si `?tracking=` dans l'URL
 - Upsert automatique dans la table `customers`
-- `created_by` = username de l'admin connecté enregistré automatiquement
+- `created_by` enregistré automatiquement (nom de l'admin connecté)
 
 ### 3. Page de Suivi Public (`/track`)
 - Recherche par numéro de tracking
 - Timeline de progression (Chine → Transit → Lomé → Livré)
 - Affichage : photos, nom client, téléphone, poids, service, prix total
-- **Réclamation** : formulaire pour client inconnu → met à jour la DB et notifie les admins
+- **Réclamation** : formulaire pour client inconnu → met à jour la DB et notifie les admins via cloche 🔔
 - **Bandeau connexion** : si colis a un propriétaire et visiteur non connecté → "Ce colis vous appartient ? Se connecter" avec redirect retour après connexion
 
 ### 4. Gestion des Colis Chine (`/chine`)
-- **Pagination serveur** : 20 colis par page, requêtes DB paginées (plus de chargement de tout)
-- **Recherche debounced** : 400ms après saisie avant requête DB
-- **Filtre type d'envoi** : dropdown sélection (Tous / Ordinaire / Express / Batterie)
-- **Vue Actifs / Archivés** : toggle — les colis `ARRIVE_LOME`/`LIVRE` sont archivés automatiquement
-- Sélection multiple + changement de statut en masse
+- **Pagination serveur** : 20 colis par page, URL `?page=N` (retour navigateur = bonne page)
+- **Recherche debounced** : 400ms avant requête DB
+- **Filtre type d'envoi** : dropdown `[▼ Tous | Ordinaire | Express | Batterie]`
+- **Vue Actifs / Archivés** : toggle chips — colis `ARRIVE_LOME`/`LIVRE` disparaissent de "Actifs" automatiquement
+- Sélection multiple + changement de statut en masse + suppression en masse
 - Import Excel (`/import`)
-- Bouton **Transit** → passe en `EN_TRANSIT` + envoie notification WhatsApp
-- **Page persistée dans l'URL** : `/chine?page=5` → retour arrière revient à la bonne page
-- **Cache localStorage** : données affichées instantanément sur revisites, refresh silencieux en arrière-plan
-- **Skeleton screens** : cartes animées pendant le premier chargement
+- Bouton **Transit** → passe en `EN_TRANSIT` + envoie notification WhatsApp + enregistre `transit_by`
+- **Cache localStorage** : affichage instantané sur revisites (stale-while-revalidate)
+- **Skeleton screens** : cartes animées sur première visite
+- **Notifications** (cloche 🔔) : uniquement quand client réclame un colis "inconnu" (enregistré sans nom). Clic sur notif = retire du compteur + navigue vers le colis
 
 ### 5. Gestion des Colis Lomé (`/lome`)
 - Vue filtrée : En Transit / Arrivé Lomé / Livré
-- Bouton **Réceptionner** → passe en `ARRIVE_LOME` + envoie notification WhatsApp + archive le colis
-- Bouton **Livrer** → passe en `LIVRE`
+- Bouton **Réceptionner** → passe en `ARRIVE_LOME` + envoie notification WhatsApp + enregistre `received_by` + archive le colis (disparaît de `/chine` vue Actifs)
+- Bouton **Livrer** → passe en `LIVRE` + enregistre `delivered_by`
 
 ### 6. Clients (`/clients`)
 - Liste de tous les clients avec compteur de colis
-- **Modifier** ✏️ : formulaire inline nom + téléphone (rename cascade sur `packages`)
-- **Supprimer** 🗑️ : confirmation + suppression (colis liés non supprimés)
+- **Badge bleu "👤 Compte"** : clients qui ont créé un compte sur le site vitrine (`client_accounts`)
+- **Modifier** : icône ✏️ → formulaire inline (nom + téléphone). Renommage cascade sur tous les colis liés
+- **Supprimer** : icône 🗑️ → confirmation → supprime (colis liés conservés)
 - Expand accordéon : affiche les colis liés au client
-- Badge **👤 Compte** : affiché si le client a créé un compte sur `/client/register`
-- Créés automatiquement à l'ajout de colis
 
-### 7. Détails Colis (`/edit/[id]`)
-- **Historique de traçabilité** : timeline des étapes avec l'admin qui a effectué chaque action
-  - 📦 Reçu en Chine → `created_by`
-  - ✈️ En Transit → `transit_by`
-  - 🏠 Arrivé à Lomé → `received_by`
-  - ✅ Livré → `delivered_by`
-- Photos, notes internes, infos client
-- Suppression via API serveur (service role key)
-
-### 8. Notifications Temps Réel (Cloche 🔔)
-- Pages `/chine` et `/lome` : cloche avec badge rouge (compteur)
-- **Déclenchement** : quand un client réclame son colis sur `/track`
+### 7. Notifications Temps Réel (Cloche 🔔)
+- Page `/chine` uniquement
+- **Déclenchement** : quand client réclame son colis "inconnu" via `/track` (status `RECU_CHINE` + `customer_name` était null + colis sur la page courante)
 - **Persistance** : notifications sauvegardées dans `localStorage`
+- **Clic sur notif** : retire la notification du compteur + navigue vers `/edit/[id]`
 - Effacement manuel via "Tout effacer"
 
 > ⚠️ **Prérequis Realtime** : activer `packages` dans Supabase → Database → Replication → `supabase_realtime`. Si RLS activé, ajouter policy SELECT publique.
 
-### 9. Import Excel (`/import`)
+### 8. Import Excel (`/import`)
 - Colonnes reconnues automatiquement (Tracking, Nom, Téléphone…)
 - Déduplication interne au fichier
 - Aperçu avec lignes valides (vert) / ignorées (rouge)
 - `tracking_number` est la seule colonne obligatoire
 - Reconnaît `BATTERIE` ou `COLIS_BATTERIE` → mappe vers `COLIS_BATTERIE`
 
-### 10. Calcul Automatique des Tarifs
+### 9. Calcul Automatique des Tarifs
 - **Ordinaire** : 10 000 FCFA / kg
 - **Express** : 13 000 FCFA / kg
 - **Colis Batterie** 🔋 : 11 000 FCFA / kg
 - Affiché sur `/track`, `/edit`, `/client/dashboard` et dans les notifications WhatsApp
 
-### 11. Notifications WhatsApp (Meta Cloud API)
+### 10. Notifications WhatsApp (Meta Cloud API)
 Fichier principal : `src/lib/whatsapp.ts`
 
 | Événement | Template | Déclencheur |
@@ -101,11 +92,11 @@ Fichier principal : `src/lib/whatsapp.ts`
 
 **Format téléphone** : numéros togolais 8 chiffres détectés automatiquement → préfixe `+228` ajouté.
 
-### 12. Page Politique de Confidentialité (`/privacy`)
+### 11. Page Politique de Confidentialité (`/privacy`)
 - Accessible publiquement sur `https://hamidcargo.com/privacy`
 - Requise pour le Live Mode Meta
 
-### 13. Espace Client (`/client/*`)
+### 12. Espace Client (`/client/*`)
 Système d'authentification séparé (JWT cookie `hc_client`, table `client_accounts`).
 
 | Route | Description |
@@ -115,28 +106,39 @@ Système d'authentification séparé (JWT cookie `hc_client`, table `client_acco
 | `/client/dashboard` | Liste des colis du client, filtres (Tous/En cours/Livrés), recherche tracking, tri date, 4 actions rapides |
 | `/client/profile` | Modifier nom / téléphone / mot de passe. JWT rafraîchi après modif |
 
-**Normalisation téléphone** : `90123456` → `+22890123456` automatiquement à l'inscription, connexion et recherche de colis. Fallback suffix pour comptes legacy.
+**Normalisation téléphone** : `90123456` → `+22890123456` automatiquement à l'inscription, connexion et recherche de colis.
 
 **Liaison colis** : les colis apparaissent si `packages.customer_phone` correspond au numéro du compte (toutes variantes).
 
-**Actions rapides dashboard** : Suivre un colis · WhatsApp Lomé · Appeler · Nos tarifs.
-
-**État vide** : contacts directs Mouhamed & Seyni (Lomé) avec boutons WhatsApp.
-
 **Home page intelligente** : détecte session active → bouton "Mes colis" au lieu de "Connexion".
 
-### 14. Sauvegarde Base de Données (`/admin` → tab Backup)
+### 13. Sauvegarde Base de Données (`/admin` → tab Backup)
 - Accessible **superadmin uniquement**
 - Télécharge `hamidcargo_backup_YYYY-MM-DD.json` contenant : colis + clients + comptes client
 - Mots de passe jamais en clair (hash bcrypt uniquement)
-- Mémorise la date et le nombre de lignes de la dernière sauvegarde (localStorage)
 
-### 15. Statistiques (`/stats`)
-- Total colis exact (count query DB, pas limité à 1000)
-- Répartition par statut + type d'envoi
-- Revenus estimés (colis livrés × tarif)
-- Poids moyen
-- Graphique colis / semaine (8 dernières semaines)
+### 14. Traçabilité des Actions
+Chaque action enregistre l'auteur (nom de l'admin connecté) :
+
+| Colonne | Quand |
+| :--- | :--- |
+| `created_by` | Ajout du colis (`/add`) |
+| `transit_by` | Bouton Transit (`/chine`) |
+| `received_by` | Bouton Réceptionner (`/lome`) |
+| `delivered_by` | Bouton Livrer (`/lome`) |
+
+Timeline affichée dans `/edit/[id]` → section **Historique**. Anciens colis affichent "—".
+
+### 15. Archivage Automatique
+- Colis passant en `ARRIVE_LOME` → `archived_at` horodaté → disparaît de la vue "Actifs" de `/chine`
+- Toggle "Archivés (Lomé)" pour consulter l'historique
+- Rétrocompatibilité : anciens colis `ARRIVE_LOME`/`LIVRE` sans `archived_at` filtrés par statut
+
+### 16. Statistiques (`/stats`)
+- Total colis exact (requêtes `count` côté DB — pas de limite 1000 lignes)
+- Répartition par statut et type d'envoi
+- Revenus estimés (colis Livrés uniquement)
+- Graphique hebdomadaire (8 dernières semaines)
 - Top 5 clients
 
 ---
@@ -157,22 +159,23 @@ Système d'authentification séparé (JWT cookie `hc_client`, table `client_acco
 | `photo_urls` | text[] | Tableau URLs de toutes les photos |
 | `notes` | text | Notes internes admin |
 | `created_at` | timestamptz | Date d'enregistrement |
-| `archived_at` | timestamptz | Date d'archivage (set à `ARRIVE_LOME`) |
-| `created_by` | text | Admin qui a enregistré le colis |
-| `transit_by` | text | Admin qui a mis en transit |
-| `received_by` | text | Admin qui a réceptionné à Lomé |
-| `delivered_by` | text | Admin qui a livré |
+| `archived_at` | timestamptz | Horodatage archivage (set à `ARRIVE_LOME`) |
+| `created_by` | text | Admin ayant enregistré |
+| `transit_by` | text | Admin ayant mis en transit |
+| `received_by` | text | Admin ayant réceptionné à Lomé |
+| `delivered_by` | text | Admin ayant livré |
 
-> ⚠️ **Migration SQL requise** si pas encore exécutée :
+> ⚠️ **Migration requise** si pas encore exécutée :
 > ```sql
-> ALTER TABLE packages ADD COLUMN IF NOT EXISTS archived_at timestamptz;
-> ALTER TABLE packages ADD COLUMN IF NOT EXISTS created_by text;
-> ALTER TABLE packages ADD COLUMN IF NOT EXISTS transit_by text;
-> ALTER TABLE packages ADD COLUMN IF NOT EXISTS received_by text;
-> ALTER TABLE packages ADD COLUMN IF NOT EXISTS delivered_by text;
+> ALTER TABLE packages
+>   ADD COLUMN IF NOT EXISTS archived_at timestamptz,
+>   ADD COLUMN IF NOT EXISTS created_by text,
+>   ADD COLUMN IF NOT EXISTS transit_by text,
+>   ADD COLUMN IF NOT EXISTS received_by text,
+>   ADD COLUMN IF NOT EXISTS delivered_by text;
 > ```
 
-### Indexes recommandés (performance)
+### Index recommandés (performance)
 ```sql
 CREATE INDEX IF NOT EXISTS idx_packages_created_at ON packages(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_packages_status ON packages(status);
@@ -204,7 +207,7 @@ CREATE INDEX IF NOT EXISTS idx_packages_customer_name ON packages(customer_name 
 ## 💻 Stack Technique
 - **Framework** : Next.js (App Router), React 19, TypeScript strict
 - **Base de données** : Supabase (PostgreSQL)
-- **Realtime** : Supabase `postgres_changes` (WebSocket) — refetch sur INSERT/UPDATE/DELETE
+- **Realtime** : Supabase `postgres_changes` (WebSocket) — `/chine` uniquement
 - **Stockage** : Supabase Storage (Bucket: `packages`)
 - **WhatsApp** : Meta Cloud API (Graph API v20.0)
 - **Auth admin** : JWT (`jose`) + cookie `hc_session` — middleware `src/proxy.ts`
@@ -213,12 +216,6 @@ CREATE INDEX IF NOT EXISTS idx_packages_customer_name ON packages(customer_name 
 - **Import** : `xlsx` (SheetJS)
 - **Icônes** : `lucide-react`
 
-### Note importante — RLS Supabase
-Toutes les opérations **écriture** (INSERT, UPDATE, DELETE) passent par des routes API serveur utilisant `supabaseServer` (clé service role). La clé anon (`supabase` client) est réservée aux lectures publiques. Si RLS est activé, les écritures côté client échouent silencieusement.
-
-### Rafraîchissement JWT permissions
-`GET /api/auth/profile` re-signe automatiquement le JWT si les permissions en DB diffèrent du token. Les utilisateurs obtiennent les nouvelles permissions sans se reconnecter.
-
 ---
 
 ## 🔑 Variables d'Environnement (Vercel)
@@ -226,8 +223,8 @@ Toutes les opérations **écriture** (INSERT, UPDATE, DELETE) passent par des ro
 | Variable | Description |
 | :--- | :--- |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL du projet Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon Supabase (client) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clé service Supabase (serveur) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon Supabase (lecture publique uniquement) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé service Supabase (toutes mutations serveur) |
 | `JWT_SECRET` | Secret JWT partagé admin + client |
 | `WHATSAPP_TOKEN` | Token System User Meta (permanent) |
 | `WHATSAPP_PHONE_ID` | `1137252232803061` |
@@ -235,6 +232,8 @@ Toutes les opérations **écriture** (INSERT, UPDATE, DELETE) passent par des ro
 | `WHATSAPP_TEMPLATE_COLIS_RECU` | Défaut : `colis_recu_chine` |
 | `WHATSAPP_TEMPLATE_EN_TRANSIT` | Défaut : `colis_en_transit` |
 | `WHATSAPP_TEMPLATE_ARRIVE_LOME` | Défaut : `colis_arrive_lome` |
+
+> ⚠️ **Important** : toutes les mutations (INSERT/UPDATE/DELETE) passent par des routes API qui utilisent `supabaseServer` (clé service) pour contourner le RLS Supabase.
 
 ---
 
@@ -249,14 +248,14 @@ Toutes les opérations **écriture** (INSERT, UPDATE, DELETE) passent par des ro
 | `/client/register` | Création compte client | Public |
 | `/client/dashboard` | Mes colis + actions rapides + filtres | Client connecté |
 | `/client/profile` | Modifier profil client | Client connecté |
-| `/chine` | Dashboard admin Chine (paginé, archivage) | Admin |
+| `/chine` | Dashboard admin Chine | Admin |
 | `/lome` | Dashboard admin Lomé | Admin |
 | `/add` | Ajouter un colis | Admin |
 | `/scan` | Scanner un code-barres | Admin |
-| `/edit/[id]` | Détails + historique traçabilité | Admin |
-| `/clients` | Liste clients + modifier/supprimer | Admin |
+| `/edit/[id]` | Détails colis + historique traçabilité | Admin |
+| `/clients` | Liste des clients + modifier/supprimer | Admin |
 | `/import` | Import Excel en masse | Admin |
-| `/stats` | Statistiques (counts exacts) | Admin |
+| `/stats` | Statistiques | Admin |
 | `/profile` | Profil admin | Admin |
 | `/admin` | Gestion utilisateurs + paramètres + backup | Superadmin |
 
@@ -266,9 +265,9 @@ Toutes les opérations **écriture** (INSERT, UPDATE, DELETE) passent par des ro
 
 | Route | Méthode | Description |
 | :--- | :--- | :--- |
-| `/api/packages` | POST | Ajouter colis + notif WhatsApp |
-| `/api/packages` | DELETE | Supprimer colis (1 ou plusieurs) + cleanup storage |
-| `/api/packages/status` | PUT | Changer statut + notif WhatsApp + traçabilité |
+| `/api/packages` | POST | Ajouter colis + notif WhatsApp + `created_by` |
+| `/api/packages` | DELETE | Supprimer colis (un ou plusieurs IDs) + cleanup storage |
+| `/api/packages/status` | PUT | Changer statut + notif WhatsApp + traçabilité + archivage |
 | `/api/whatsapp/webhook` | GET | Vérification webhook Meta |
 | `/api/whatsapp/webhook` | POST | Réception message client → auto-reply |
 | `/api/client/register` | POST | Créer compte client |
@@ -279,12 +278,20 @@ Toutes les opérations **écriture** (INSERT, UPDATE, DELETE) passent par des ro
 | `/api/admin/users` | GET / POST / PUT / DELETE | Gestion utilisateurs admin |
 | `/api/admin/settings` | GET / POST | Paramètres app |
 | `/api/admin/backup` | GET | Télécharger sauvegarde JSON (superadmin) |
-| `/api/admin/client-phones` | GET | Téléphones des comptes clients (pour badge) |
-| `/api/auth/profile` | GET | Profil admin + refresh JWT permissions |
+| `/api/admin/client-phones` | GET | Téléphones comptes clients (badge "Compte") |
+| `/api/auth/profile` | GET | Profil admin + refresh JWT si permissions DB changées |
 | `/api/auth/login` | POST | Connexion admin |
 | `/api/auth/logout` | POST | Déconnexion admin |
 
 > ⚠️ Le webhook `/api/whatsapp/webhook` est exclu du middleware d'auth (`src/proxy.ts`).
+
+---
+
+## 🔐 Système de Permissions
+
+- **superadmin** : accès total
+- **admin** : accès selon `permissions[]` dans le JWT (`chine`, `lome`)
+- **Refresh automatique** : si superadmin modifie permissions en DB → JWT mis à jour à la prochaine visite du dashboard (sans re-login)
 
 ---
 
@@ -347,13 +354,24 @@ CREATE POLICY "Realtime public read" ON packages FOR SELECT USING (true);
 - Éviter les reflets sur l'étiquette
 - Utiliser Chrome sur Android (BarcodeDetector natif)
 
-### Colis ne s'affichent pas sur /chine :
-- Vider le cache localStorage : ouvrir DevTools → Application → Local Storage → supprimer `chine_cache_v1`
+### Utilisateur ne peut pas accéder à /chine ou /lome après changement de permissions :
+- JWT pas encore rafraîchi → l'utilisateur visite `/dashboard` → JWT mis à jour automatiquement → accès accordé
 
-### Suppression / statut ne fonctionne pas :
-- Vérifier que `SUPABASE_SERVICE_ROLE_KEY` est bien configurée dans Vercel
-- Toutes les écritures passent par des routes API serveur (pas la clé anon)
+### Suppression ou changement de statut silencieux (aucune erreur, rien ne change) :
+- Cause probable : RLS Supabase bloque la mutation avec la clé anon
+- Toutes les mutations passent par les routes API qui utilisent `supabaseServer` (clé service)
+- Vérifier que `SUPABASE_SERVICE_ROLE_KEY` est bien configuré dans Vercel
 
 ---
 
-*Document mis à jour le 17 Juin 2026 pour Hamid Cargo.*
+## 🔮 Migration Prévue
+
+Migration Vercel + Supabase → **Hetzner CX21** self-hosted prévue ultérieurement :
+- App Next.js : Docker + Nginx + SSL (Let's Encrypt)
+- DB : PostgreSQL via Supabase self-hosted (Docker Compose) — zéro changement de code
+- Storage : MinIO (S3-compatible)
+- Realtime : conservé via Supabase self-hosted
+
+---
+
+*Document mis à jour le 18 Juin 2026 pour Hamid Cargo.*
