@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
       photo_urls,
       notes,
       unknown_client,
+      force_name_override,
     } = body
 
     if (!tracking_number) {
@@ -73,10 +74,17 @@ export async function POST(req: NextRequest) {
     if (finalCustomerPhone && finalCustomerName) {
       const knownName = await findKnownCustomerName(finalCustomerPhone)
       if (knownName && !sameName(knownName, finalCustomerName)) {
-        return NextResponse.json({
-          error: `Ce numéro est déjà associé à ${knownName}. Utilisez ce nom ou vérifiez le numéro.`,
-          existingName: knownName,
-        }, { status: 409 })
+        if (!force_name_override) {
+          return NextResponse.json({
+            error: `Ce numéro est déjà associé à ${knownName}. Utilisez ce nom ou vérifiez le numéro.`,
+            existingName: knownName,
+          }, { status: 409 })
+        }
+        // Admin forced override — update customer record with new name
+        await supabaseServer
+          .from('customers')
+          .update({ name: finalCustomerName })
+          .eq('phone', finalCustomerPhone)
       }
     }
 

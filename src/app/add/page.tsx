@@ -17,6 +17,7 @@ const AddPackage = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [unknownClient, setUnknownClient] = useState(false);
   const [knownPhoneName, setKnownPhoneName] = useState<string | null>(null);
+  const [forceNameOverride, setForceNameOverride] = useState(false);
 
   const multiPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,7 +38,7 @@ const AddPackage = () => {
   const normalizePhone = (phone: string) => phone.trim().replace(/\s+/g, '');
   const nameMatchesKnownPhone = !knownPhoneName
     || formData.customer_name.trim().toLowerCase() === knownPhoneName.trim().toLowerCase();
-  const hasPhoneNameConflict = !unknownClient && Boolean(knownPhoneName) && !nameMatchesKnownPhone;
+  const hasPhoneNameConflict = !unknownClient && Boolean(knownPhoneName) && !nameMatchesKnownPhone && !forceNameOverride;
 
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
@@ -117,8 +118,10 @@ const AddPackage = () => {
         ]);
 
         setKnownPhoneName(customers?.[0]?.name || packages?.[0]?.customer_name || null);
+        setForceNameOverride(false);
       } else {
         setKnownPhoneName(null);
+        setForceNameOverride(false);
       }
     }
   }, []);
@@ -158,6 +161,7 @@ const AddPackage = () => {
           photo_url: uploadedUrls[0] || null,
           photo_urls: uploadedUrls,
           unknown_client: unknownClient,
+          force_name_override: forceNameOverride,
         }),
       });
 
@@ -344,23 +348,40 @@ const AddPackage = () => {
                     <span style={{ color: 'var(--text-2)', fontSize: '0.8125rem', fontWeight: 600 }}>
                       Ce numéro est déjà associé à {knownPhoneName}. Utilisez ce nom ou vérifiez le numéro.
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, customer_name: knownPhoneName || prev.customer_name }))}
-                      style={{
-                        alignSelf: 'flex-start',
-                        border: '1px solid var(--accent-border)',
-                        background: 'var(--accent-subtle)',
-                        color: 'var(--accent)',
-                        borderRadius: 'var(--r-full)',
-                        padding: '0.5rem 0.75rem',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Utiliser {knownPhoneName}
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, customer_name: knownPhoneName || prev.customer_name }))}
+                        style={{
+                          border: '1px solid var(--accent-border)',
+                          background: 'var(--accent-subtle)',
+                          color: 'var(--accent)',
+                          borderRadius: 'var(--r-full)',
+                          padding: '0.5rem 0.75rem',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Utiliser {knownPhoneName}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForceNameOverride(true)}
+                        style={{
+                          border: '1px solid var(--warning-border, #fde68a)',
+                          background: 'transparent',
+                          color: 'var(--text-2)',
+                          borderRadius: 'var(--r-full)',
+                          padding: '0.5rem 0.75rem',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Continuer avec &ldquo;{formData.customer_name}&rdquo;
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
