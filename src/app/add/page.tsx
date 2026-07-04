@@ -46,7 +46,7 @@ const AddPackage = () => {
       const objectUrl = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(objectUrl);
-        const MAX = 1920;
+        const MAX = 1280;
         let { width, height } = img;
         if (width > MAX || height > MAX) {
           if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
@@ -58,7 +58,7 @@ const AddPackage = () => {
         canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
           (blob) => resolve(blob ? new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }) : file),
-          'image/jpeg', 0.9
+          'image/jpeg', 0.75
         );
       };
       img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };

@@ -16,6 +16,23 @@ interface Customer {
   expanded?: boolean;
 }
 
+const PAGE_SIZE = 1000;
+
+async function fetchAllRows<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
+): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await build(from, from + PAGE_SIZE - 1);
+    if (error || !data) break;
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return rows;
+}
+
 export default function ClientsPage() {
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -32,19 +49,21 @@ export default function ClientsPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const [{ data: custData }, { data: pkgData }, accountRes] = await Promise.all([
-        supabase.from('customers').select('*').order('name'),
-        supabase.from('packages').select('customer_name').not('customer_name', 'is', null),
+      const [custData, pkgData, accountRes] = await Promise.all([
+        fetchAllRows<Customer>((from, to) =>
+          supabase.from('customers').select('*').order('name').range(from, to)
+        ),
+        fetchAllRows<{ customer_name: string }>((from, to) =>
+          supabase.from('packages').select('customer_name').not('customer_name', 'is', null).range(from, to)
+        ),
         fetch('/api/admin/client-phones').then(r => r.ok ? r.json() : { phones: [] }),
       ]);
 
-      if (custData) {
-        const countMap: Record<string, number> = {};
-        (pkgData || []).forEach((p: any) => {
-          if (p.customer_name) countMap[p.customer_name] = (countMap[p.customer_name] || 0) + 1;
-        });
-        setCustomers(custData.map(c => ({ ...c, packageCount: countMap[c.name] || 0 })));
-      }
+      const countMap: Record<string, number> = {};
+      pkgData.forEach((p) => {
+        if (p.customer_name) countMap[p.customer_name] = (countMap[p.customer_name] || 0) + 1;
+      });
+      setCustomers(custData.map(c => ({ ...c, packageCount: countMap[c.name] || 0 })));
 
       const phones = new Set<string>();
       ((accountRes as any).phones || []).forEach((phone: string) => {
