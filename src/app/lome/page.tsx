@@ -9,13 +9,20 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface ClaimNotif { id: string; tracking: string; name: string; phone: string | null; time: Date; }
 
+const PAGE_SIZE = 20;
+
 export default function LomeDashboard() {
   const router = useRouter();
   const { username, initials } = useCurrentUser();
   const [packages, setPackages] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [counts, setCounts] = useState({ transit: 0, arrived: 0, delivered: 0 });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("EN_TRANSIT");
+  const [page, setPage] = useState(1);
+  const [fetchKey, setFetchKey] = useState(0);
   const [notifications, setNotifications] = useState<ClaimNotif[]>(() => {
     try {
       const saved = localStorage.getItem('lome_notifications');
@@ -31,9 +38,62 @@ export default function LomeDashboard() {
     try { localStorage.setItem('lome_notifications', JSON.stringify(notifs)); } catch {}
   };
 
-  useEffect(() => {
-    fetchPackages();
+  const refetch = () => setFetchKey(k => k + 1);
 
+  const selectFilter = (filter: string) => { setActiveFilter(filter); setPage(1); };
+
+  // Debounce search — wait 400ms after typing stops
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(searchQuery); setPage(1); }, 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Tile counts — independent of pagination/search, one head-count query per status
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchCounts() {
+      const [{ count: transit }, { count: arrived }, { count: delivered }] = await Promise.all([
+        supabase.from('packages').select('*', { count: 'exact', head: true }).eq('status', 'EN_TRANSIT'),
+        supabase.from('packages').select('*', { count: 'exact', head: true }).eq('status', 'ARRIVE_LOME'),
+        supabase.from('packages').select('*', { count: 'exact', head: true }).eq('status', 'LIVRE'),
+      ]);
+      if (!cancelled) setCounts({ transit: transit || 0, arrived: arrived || 0, delivered: delivered || 0 });
+    }
+    fetchCounts();
+    return () => { cancelled = true; };
+  }, [fetchKey]);
+
+  // Paginated list for the active tab
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchPackages() {
+      setLoading(true);
+      let q = supabase
+        .from('packages')
+        .select('id,tracking_number,customer_name,customer_phone,status,created_at,created_by,transit_by,received_by,delivered_by', { count: 'exact' })
+        .eq('status', activeFilter);
+
+      if (debouncedSearch) q = q.or(`tracking_number.ilike.%${debouncedSearch}%,customer_name.ilike.%${debouncedSearch}%`);
+
+      q = q.order('created_at', { ascending: false }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+      const { data, count, error } = await q;
+
+      if (cancelled) return;
+      if (error) {
+        console.error("Erreur Supabase:", error);
+      } else {
+        setPackages(data || []);
+        packagesRef.current = data || [];
+        setTotalCount(count || 0);
+      }
+      setLoading(false);
+    }
+    fetchPackages();
+    return () => { cancelled = true; };
+  }, [activeFilter, debouncedSearch, page, fetchKey]);
+
+  useEffect(() => {
     const channel = supabase
       .channel('pkg-claims-lome')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'packages' }, (payload) => {
@@ -47,30 +107,12 @@ export default function LomeDashboard() {
             return next;
           });
         }
-        packagesRef.current = packagesRef.current.map(p => p.id === updated.id ? { ...p, ...updated } : p);
-        setPackages([...packagesRef.current]);
+        refetch();
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
-
-
-  async function fetchPackages() {
-    const { data, error } = await supabase
-      .from('packages')
-      .select('id,tracking_number,customer_name,customer_phone,status,created_at,created_by,transit_by,received_by,delivered_by')
-      .in('status', ['EN_TRANSIT', 'ARRIVE_LOME', 'LIVRE'])
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error("Erreur Supabase:", error);
-    } else {
-      setPackages(data || []);
-      packagesRef.current = data || [];
-    }
-    setLoading(false);
-  }
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     const res = await fetch('/api/packages/status', {
@@ -78,19 +120,13 @@ export default function LomeDashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, status: newStatus }),
     });
-    if (res.ok) setPackages(packages.map(p => p.id === id ? { ...p, status: newStatus } : p));
+    if (res.ok) refetch();
   };
 
-  const filteredPackages = packages.filter(pkg => {
-    const matchesSearch =
-      pkg.tracking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (pkg.customer_name && pkg.customer_name.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesSearch && pkg.status === activeFilter;
-  });
-
-  const inTransitCount = packages.filter(p => p.status === 'EN_TRANSIT').length;
-  const arrivedCount   = packages.filter(p => p.status === 'ARRIVE_LOME').length;
-  const deliveredCount = packages.filter(p => p.status === 'LIVRE').length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const inTransitCount = counts.transit;
+  const arrivedCount   = counts.arrived;
+  const deliveredCount = counts.delivered;
 
   const sectionTitle = activeFilter === 'EN_TRANSIT' ? 'Colis attendus'
     : activeFilter === 'ARRIVE_LOME' ? 'Colis à livrer'
@@ -156,25 +192,25 @@ export default function LomeDashboard() {
       <div className="stats-row three">
         <div
           className={`stat-tile ${activeFilter === 'EN_TRANSIT' ? 'is-active-blue' : ''}`}
-          onClick={() => setActiveFilter('EN_TRANSIT')}
+          onClick={() => selectFilter('EN_TRANSIT')}
         >
-          <div className="stat-num" style={{ fontSize: '1.5rem' }}>{loading ? '—' : inTransitCount}</div>
+          <div className="stat-num" style={{ fontSize: '1.5rem' }}>{inTransitCount}</div>
           <div className="stat-lbl">En Transit</div>
         </div>
         <div
           className={`stat-tile ${activeFilter === 'ARRIVE_LOME' ? 'is-active' : ''}`}
-          onClick={() => setActiveFilter('ARRIVE_LOME')}
+          onClick={() => selectFilter('ARRIVE_LOME')}
         >
-          <div className="stat-num" style={{ fontSize: '1.5rem' }}>{loading ? '—' : arrivedCount}</div>
+          <div className="stat-num" style={{ fontSize: '1.5rem' }}>{arrivedCount}</div>
           <div className="stat-lbl">À Lomé</div>
         </div>
         <div
           className={`stat-tile ${activeFilter === 'LIVRE' ? '' : ''}`}
-          onClick={() => setActiveFilter('LIVRE')}
+          onClick={() => selectFilter('LIVRE')}
           style={activeFilter === 'LIVRE' ? { borderColor: 'var(--success)', background: 'var(--success-subtle)' } : {}}
         >
           <div className="stat-num" style={{ fontSize: '1.5rem', ...(activeFilter === 'LIVRE' ? { color: 'var(--success)' } : {}) }}>
-            {loading ? '—' : deliveredCount}
+            {deliveredCount}
           </div>
           <div className="stat-lbl" style={activeFilter === 'LIVRE' ? { color: 'var(--success)', opacity: 0.8 } : {}}>Livré</div>
         </div>
@@ -195,9 +231,9 @@ export default function LomeDashboard() {
       {/* Section title */}
       <div className="section-label">
         <span className="section-title">{sectionTitle}</span>
-        {filteredPackages.length > 0 && (
+        {totalCount > 0 && (
           <span style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', padding: '0.1rem 0.5rem', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-3)' }}>
-            {filteredPackages.length}
+            {totalCount}
           </span>
         )}
       </div>
@@ -205,13 +241,13 @@ export default function LomeDashboard() {
       {/* Package list */}
       {loading ? (
         <div className="loading-state">Chargement...</div>
-      ) : filteredPackages.length === 0 ? (
+      ) : packages.length === 0 ? (
         <div className="empty-state">
           <div className="empty-title">Aucun colis</div>
           <div className="empty-text">Aucun colis dans cette catégorie.</div>
         </div>
       ) : (
-        filteredPackages.map((pkg) => (
+        packages.map((pkg) => (
           <div key={pkg.id} className="pkg-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="pkg-number">{pkg.tracking_number}</div>
@@ -243,6 +279,21 @@ export default function LomeDashboard() {
             </div>
           </div>
         ))
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '1.25rem 0 0.5rem' }}>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+            style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === 1 ? 'var(--text-3)' : 'var(--text-1)', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
+            ← Préc.
+          </button>
+          <span style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--text-2)' }}>{page} / {totalPages}</span>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            style={{ height: '36px', padding: '0 1rem', borderRadius: 'var(--r-full)', border: '1.5px solid var(--border)', background: 'white', fontSize: '0.8125rem', fontWeight: '600', color: page === totalPages ? 'var(--text-3)' : 'var(--text-1)', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
+            Suiv. →
+          </button>
+        </div>
       )}
 
       {/* Bottom Nav */}
