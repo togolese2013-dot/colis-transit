@@ -3,7 +3,12 @@
 Ce document résume l'état actuel de la plateforme de gestion de colis entre la Chine et le Togo.
 
 ## 🚀 État Actuel
-L'application est stable et déployée sur **Vercel**. Domaine : **hamidcargo.com**. Connectée à **Supabase** pour le stockage des colis, photos et clients.
+L'application est déployée sur **Vercel**. Domaine : **hamidcargo.com**.
+
+⚠️ **Backend migré vers Supabase self-hosted (Hetzner)** le 3 août 2026, suite au blocage total de l'ancien projet Supabase Cloud (quota Storage dépassé, 1.1GB, API entièrement coupée — DB + Storage). Voir section [🏗️ Infrastructure Self-Hosted](#-infrastructure-self-hosted-hetzner) pour le détail complet.
+
+- **Base de données (packages, customers, client_accounts, admins, settings)** : migrée, en ligne, à jour.
+- **Storage (photos des colis)** : **pas encore migré**. Toujours coincé sur l'ancien projet Supabase Cloud (`ghwhyuneberhotwzinwq`), bloqué par le dépassement de quota. Les photos des colis créés avant le 3 août 2026 ne s'affichent plus tant que ce n'est pas résolu. Voir section Storage ci-dessous pour le plan.
 
 ---
 
@@ -46,6 +51,8 @@ L'application est stable et déployée sur **Vercel**. Domaine : **hamidcargo.co
 
 ### 5. Gestion des Colis Lomé (`/lome`)
 - Vue filtrée : En Transit / Arrivé Lomé / Livré
+- **Pagination serveur** : 20 colis par page (fix du 3 août 2026 — l'ancienne requête chargeait les 3 statuts en une fois sans `.range()`, plafonnée à 1000 lignes par Supabase et triée par `created_at` de création ; au-delà de 1000 colis cumulés, les colis **En Transit** (souvent anciens en date de création mais récemment transitionnés) disparaissaient complètement de la liste. Requête maintenant filtrée par statut actif + paginée, comme `/chine`)
+- Compteurs des tuiles (En Transit / À Lomé / Livré) via requêtes `count` indépendantes de la pagination
 - Bouton **Réceptionner** → passe en `ARRIVE_LOME` + envoie notification WhatsApp + enregistre `received_by` + archive le colis (disparaît de `/chine` vue Actifs)
 - Bouton **Livrer** → passe en `LIVRE` + enregistre `delivered_by`
 
@@ -63,7 +70,7 @@ L'application est stable et déployée sur **Vercel**. Domaine : **hamidcargo.co
 - **Clic sur notif** : retire la notification du compteur + navigue vers `/edit/[id]`
 - Effacement manuel via "Tout effacer"
 
-> ⚠️ **Prérequis Realtime** : activer `packages` dans Supabase → Database → Replication → `supabase_realtime`. Si RLS activé, ajouter policy SELECT publique.
+> ⚠️ **Prérequis Realtime** : activer `packages` dans Supabase → Database → Replication → `supabase_realtime`. Si RLS activé, ajouter policy SELECT publique. À **revérifier** sur l'instance self-hosted (Hetzner) — la policy RLS a été migrée avec le dump, mais la config de réplication Realtime doit être confirmée manuellement.
 
 ### 8. Import Excel (`/import`)
 - Colonnes reconnues automatiquement (Tracking, Nom, Téléphone…)
@@ -206,9 +213,9 @@ CREATE INDEX IF NOT EXISTS idx_packages_customer_name ON packages(customer_name 
 
 ## 💻 Stack Technique
 - **Framework** : Next.js (App Router), React 19, TypeScript strict
-- **Base de données** : Supabase (PostgreSQL)
-- **Realtime** : Supabase `postgres_changes` (WebSocket) — `/chine` uniquement
-- **Stockage** : Supabase Storage (Bucket: `packages`)
+- **Base de données** : Supabase self-hosted (PostgreSQL 17) sur Hetzner — voir infra ci-dessous
+- **Realtime** : Supabase `postgres_changes` (WebSocket) — `/chine` et `/lome`
+- **Stockage** : Supabase Storage (Bucket: `packages`) — ⚠️ toujours sur l'ancien Supabase Cloud, pas migré
 - **WhatsApp** : Meta Cloud API (Graph API v20.0)
 - **Auth admin** : JWT (`jose`) + cookie `hc_session` — middleware `src/proxy.ts`
 - **Auth client** : JWT (`jose`) + cookie `hc_client` — `src/lib/clientAuth.ts`
@@ -222,9 +229,9 @@ CREATE INDEX IF NOT EXISTS idx_packages_customer_name ON packages(customer_name 
 
 | Variable | Description |
 | :--- | :--- |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL du projet Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon Supabase (lecture publique uniquement) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clé service Supabase (toutes mutations serveur) |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://supabase.hamidcargo.com` (self-hosted Hetzner depuis le 3 août 2026, était `https://ghwhyuneberhotwzinwq.supabase.co`) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon (JWT legacy HS256, générée par `utils/generate-keys.sh`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé service (toutes mutations serveur) |
 | `JWT_SECRET` | Secret JWT partagé admin + client |
 | `WHATSAPP_TOKEN` | Token System User Meta (permanent) |
 | `WHATSAPP_PHONE_ID` | `1137252232803061` |
@@ -364,14 +371,40 @@ CREATE POLICY "Realtime public read" ON packages FOR SELECT USING (true);
 
 ---
 
-## 🔮 Migration Prévue
+## 🏗️ Infrastructure Self-Hosted (Hetzner)
 
-Migration Vercel + Supabase → **Hetzner CX21** self-hosted prévue ultérieurement :
-- App Next.js : Docker + Nginx + SSL (Let's Encrypt)
-- DB : PostgreSQL via Supabase self-hosted (Docker Compose) — zéro changement de code
-- Storage : MinIO (S3-compatible)
-- Realtime : conservé via Supabase self-hosted
+### Serveur
+- **Nom** : `Togolese` (CX23, 4GB RAM, 2 vCPU) — Hetzner Cloud, Falkenstein (`fsn1`)
+- **IP** : `178.105.157.67`
+- **Accès SSH** : clé dédiée `~/.ssh/hetzner_colis_transit` (générée pour ce projet)
+- ⚠️ **Serveur partagé** avec d'autres projets non liés : `afrisika-backend/frontend`, `gestion-commandes-app`, `serena-agent`, `togolese_backend`/`togolese_mysql`. Ne pas toucher aux conteneurs/volumes de ces projets.
+- **Docker data-root** déplacé vers le volume dédié (`/etc/docker/daemon.json` → `/mnt/HC_Volume_106533764/docker-data`) pour ne pas saturer le disque racine (était à 85%+ avant migration).
+
+### Volume dédié colis-transit
+- **Volume Hetzner** : `colis-transit-data`, 10GB, monté sur `/mnt/HC_Volume_106533764` (persistant via `/etc/fstab`)
+- **Stack Supabase** : `/mnt/HC_Volume_106533764/colis-transit/supabase/` (docker-compose officiel `supabase/supabase`, dossier `docker/`)
+- **Dump DB de référence** (au moment de la migration) : `/mnt/HC_Volume_106533764/colis-transit/db_dump.dump`
+
+### Services (tous dans `docker compose ps`, healthy)
+`supabase-db` (Postgres 17.6), `supabase-auth` (GoTrue — non utilisé par l'app, qui a sa propre auth JWT custom), `supabase-rest` (PostgREST), `supabase-storage`, `realtime-dev.supabase-realtime`, `supabase-kong` (API gateway, écoute en local sur `127.0.0.1:8010`), `supabase-studio`, `supabase-meta`, `supabase-pooler` (Supavisor, port 5432 exposé publiquement), `supabase-imgproxy`, `supabase-edge-functions`.
+
+### Exposition publique
+- **URL API** : `https://supabase.hamidcargo.com` (Kong, port 8010 en interne)
+- **DNS** : géré sur **Cloudflare** (pas Vercel malgré le nom de domaine sur Vercel) — zone `hamidcargo.com`, nameservers `abdullah.ns.cloudflare.com` / `evelyn.ns.cloudflare.com`. Enregistrement A `supabase` → `178.105.157.67`, **DNS-only** (pas proxifié Cloudflare, nécessaire pour Let's Encrypt)
+- **SSL** : Let's Encrypt via `certbot --nginx`, renouvellement auto configuré
+- **Reverse proxy** : bloc nginx natif de l'hôte, `/etc/nginx/sites-available/supabase.hamidcargo.com` → proxy vers `127.0.0.1:8010`
+
+### Secrets
+Générés via les scripts officiels `utils/generate-keys.sh` et `utils/add-new-auth-keys.sh` du repo Supabase, stockés dans `.env` sur le serveur (`/mnt/HC_Volume_106533764/colis-transit/supabase/.env`). Nouvelles clés `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` poussées dans Vercel (Production + Preview). Ancien `.env.local` sauvegardé localement dans `.env.local.backup-old-supabase`.
+
+### ⚠️ Storage — pas encore migré
+Les ~9400 fichiers (photos colis, ~2GB) sont toujours sur l'ancien projet Supabase Cloud (`ghwhyuneberhotwzinwq`), bloqué par dépassement de quota (API + Storage totalement inaccessibles, y compris en lecture, y compris via dashboard). Contact support Supabase en cours pour débloquer temporairement et permettre l'export.
+
+**Plan une fois débloqué** : télécharger les fichiers depuis l'ancien Storage → les uploader dans le bucket `packages` du nouveau Storage self-hosted (déjà actif, prêt à recevoir) → script de mise à jour des colonnes `photo_url`/`photo_urls` en DB pour pointer vers les nouvelles URLs (`https://supabase.hamidcargo.com/storage/v1/object/public/packages/...`).
+
+### Rollback si besoin
+`.env.local.backup-old-supabase` contient les anciennes clés (Supabase Cloud). Les vars d'env Vercel Production d'avant migration peuvent être restaurées via `vercel env add` avec ces valeurs si le self-hosted a un problème majeur.
 
 ---
 
-*Document mis à jour le 18 Juin 2026 pour Hamid Cargo.*
+*Document mis à jour le 3 août 2026 pour Hamid Cargo.*
