@@ -143,15 +143,19 @@ const AddPackage = () => {
     setLoading(true);
     setError(null);
 
-    const uploadedUrls: string[] = [];
+    let uploadedUrls: string[] = [];
 
     try {
-      for (const photoFile of photos) {
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${photoFile.name.split('.').pop()}`;
-        const { error: uploadError } = await supabase.storage.from('packages').upload(fileName, photoFile);
-        if (uploadError) throw uploadError;
-        const { data } = supabase.storage.from('packages').getPublicUrl(fileName);
-        uploadedUrls.push(data.publicUrl);
+      if (photos.length > 0) {
+        const uploadForm = new FormData();
+        photos.forEach(photoFile => uploadForm.append('files', photoFile));
+        const uploadRes = await fetch('/api/packages/upload', { method: 'POST', body: uploadForm });
+        if (!uploadRes.ok) {
+          const data = await uploadRes.json().catch(() => ({}));
+          throw new Error(data.error ?? 'Erreur upload photo');
+        }
+        const uploadData = await uploadRes.json();
+        uploadedUrls = uploadData.urls;
       }
 
       const res = await fetch('/api/packages', {
