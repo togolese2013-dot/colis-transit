@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Missing config' }, { status: 500 })
     }
 
-    await fetch(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
+    const sendRes = await fetch(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${TOKEN}`,
@@ -56,6 +56,11 @@ export async function POST(req: NextRequest) {
         text: { body: AUTO_REPLY },
       }),
     })
+
+    if (!sendRes.ok) {
+      const errBody = await sendRes.text()
+      console.error('[whatsapp webhook] auto-reply failed:', from, sendRes.status, errBody)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
