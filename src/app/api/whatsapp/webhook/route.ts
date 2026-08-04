@@ -7,7 +7,7 @@ const PHONE_ID = process.env.WHATSAPP_PHONE_ID
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN
 
 const AUTO_REPLY =
-  'Merci pour votre message 🙏\n\nPour toute question, contactez-nous directement :\n📞 Appel / WhatsApp : *+228 70 15 13 30*\n\n— Hamid Cargo'
+  'Merci pour votre message 🙏\n\nCe numéro est réservé aux notifications automatiques et n\'est pas surveillé. Merci de ne plus y écrire.\n\nPour toute question, contactez directement nos responsables :\n📞 Mouhamed : *+228 90 19 65 29*\n📞 Seyni : *+228 70 15 13 30*\n\n— Hamid Cargo'
 
 // Meta webhook verification (GET)
 export async function GET(req: NextRequest) {
