@@ -8,7 +8,7 @@ L'application est déployée sur **Vercel**. Domaine : **hamidcargo.com**.
 ⚠️ **Backend migré vers Supabase self-hosted (Hetzner)** le 3 août 2026, suite au blocage total de l'ancien projet Supabase Cloud (quota Storage dépassé, 1.1GB, API entièrement coupée — DB + Storage). Voir section [🏗️ Infrastructure Self-Hosted](#-infrastructure-self-hosted-hetzner) pour le détail complet.
 
 - **Base de données (packages, customers, client_accounts, admins, settings)** : migrée, en ligne, à jour.
-- **Storage (photos des colis)** : **pas encore migré**. Toujours coincé sur l'ancien projet Supabase Cloud (`ghwhyuneberhotwzinwq`), bloqué par le dépassement de quota. Les photos des colis créés avant le 3 août 2026 ne s'affichent plus tant que ce n'est pas résolu. Voir section Storage ci-dessous pour le plan.
+- **Storage (photos des colis)** : **migré**. Les ~9436 fichiers de l'ancien projet Supabase Cloud (`ghwhyuneberhotwzinwq`) ont été copiés vers le bucket `packages` du Storage self-hosted, et les colonnes `photo_url`/`photo_urls` de la table `packages` ont été réécrites vers le nouveau host (`supabase.hamidcargo.com`). Scripts utilisés : `scripts/migrate-storage-to-selfhosted.mjs` (copie fichiers) et `scripts/fix-photo-urls-after-migration.mjs` (correction URLs DB), tous deux idempotents (relançables sans dupliquer).
 
 ---
 
@@ -215,7 +215,7 @@ CREATE INDEX IF NOT EXISTS idx_packages_customer_name ON packages(customer_name 
 - **Framework** : Next.js (App Router), React 19, TypeScript strict
 - **Base de données** : Supabase self-hosted (PostgreSQL 17) sur Hetzner — voir infra ci-dessous
 - **Realtime** : Supabase `postgres_changes` (WebSocket) — `/chine` et `/lome`
-- **Stockage** : Supabase Storage (Bucket: `packages`) — ⚠️ toujours sur l'ancien Supabase Cloud, pas migré
+- **Stockage** : Supabase Storage self-hosted (Bucket: `packages`) — migré depuis l'ancien Supabase Cloud
 - **WhatsApp** : Meta Cloud API (Graph API v20.0)
 - **Auth admin** : JWT (`jose`) + cookie `hc_session` — middleware `src/proxy.ts`
 - **Auth client** : JWT (`jose`) + cookie `hc_client` — `src/lib/clientAuth.ts`
@@ -397,10 +397,14 @@ CREATE POLICY "Realtime public read" ON packages FOR SELECT USING (true);
 ### Secrets
 Générés via les scripts officiels `utils/generate-keys.sh` et `utils/add-new-auth-keys.sh` du repo Supabase, stockés dans `.env` sur le serveur (`/mnt/HC_Volume_106533764/colis-transit/supabase/.env`). Nouvelles clés `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` poussées dans Vercel (Production + Preview). Ancien `.env.local` sauvegardé localement dans `.env.local.backup-old-supabase`.
 
-### ⚠️ Storage — pas encore migré
-Les ~9400 fichiers (photos colis, ~2GB) sont toujours sur l'ancien projet Supabase Cloud (`ghwhyuneberhotwzinwq`), bloqué par dépassement de quota (API + Storage totalement inaccessibles, y compris en lecture, y compris via dashboard). Contact support Supabase en cours pour débloquer temporairement et permettre l'export.
+### ✅ Storage — migré
+Le blocage sur l'ancien projet Supabase Cloud (`ghwhyuneberhotwzinwq`, quota Storage dépassé) a été levé côté Supabase (spend cap désactivé), ce qui a permis l'export. Les 9436 fichiers (photos colis, ~2GB) ont été copiés vers le bucket `packages` du Storage self-hosted, avec les mêmes noms de fichiers. Les colonnes `photo_url`/`photo_urls` de tous les colis concernés (966) ont été réécrites vers les nouvelles URLs (`https://supabase.hamidcargo.com/storage/v1/object/public/packages/...`).
 
-**Plan une fois débloqué** : télécharger les fichiers depuis l'ancien Storage → les uploader dans le bucket `packages` du nouveau Storage self-hosted (déjà actif, prêt à recevoir) → script de mise à jour des colonnes `photo_url`/`photo_urls` en DB pour pointer vers les nouvelles URLs (`https://supabase.hamidcargo.com/storage/v1/object/public/packages/...`).
+Scripts (réutilisables si besoin, idempotents) :
+- `scripts/migrate-storage-to-selfhosted.mjs` — copie les fichiers manquants de l'ancien bucket vers le nouveau (skip ceux déjà présents)
+- `scripts/fix-photo-urls-after-migration.mjs` — réécrit `photo_url`/`photo_urls` en DB vers le nouveau host (support `--dry-run`)
+
+L'ancien projet Supabase Cloud n'est plus utilisé par l'app. À évaluer : le conserver (avec spend cap réactivé à un seuil raisonnable) ou le supprimer.
 
 ### Rollback si besoin
 `.env.local.backup-old-supabase` contient les anciennes clés (Supabase Cloud). Les vars d'env Vercel Production d'avant migration peuvent être restaurées via `vercel env add` avec ces valeurs si le self-hosted a un problème majeur.
