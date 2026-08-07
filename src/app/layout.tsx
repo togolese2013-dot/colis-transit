@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { JwtRefresher } from "@/components/JwtRefresher";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,7 +36,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable}`}>
-      <body>{children}</body>
+      <body>
+        <JwtRefresher />
+        {children}
+      </body>
     </html>
   );
 }
