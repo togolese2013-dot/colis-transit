@@ -509,7 +509,6 @@ function TrackContent() {
   const formula = FORMULA_MAP[packageData.shipping_type] || "Ordinaire";
   const progress = PROGRESS_MAP[dbStatus] ?? 0;
   const eta = computeETA(packageData.shipping_type, packageData.created_at, dbStatus);
-  const showAuthBanner = !!(packageData.customer_name && clientSession === null);
 
   return (
     <>
@@ -552,22 +551,6 @@ function TrackContent() {
           </div>
           <div style={{ width: 32 }} />
         </nav>
-
-        {/* AUTH BANNER */}
-        {showAuthBanner && (
-          <div style={{ background: "white", borderBottom: "1.5px solid #fed7aa", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 2 }}>Ce colis vous appartient ?</p>
-              <p style={{ fontSize: 11, color: "#64748b" }}>Connectez-vous pour suivre tous vos colis.</p>
-            </div>
-            <Link
-              href={`/client/login?redirect=${encodeURIComponent(`/track?id=${packageData.tracking_number}`)}`}
-              style={{ flexShrink: 0, height: 36, padding: "0 14px", borderRadius: 9, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "white", textDecoration: "none", whiteSpace: "nowrap" }}
-            >
-              Se connecter
-            </Link>
-          </div>
-        )}
 
         {/* HERO */}
         <div style={{ background: "#05101f", padding: "24px 20px 28px", position: "relative", overflow: "hidden" }}>
@@ -705,7 +688,7 @@ function TrackContent() {
         {!packageData.customer_name && !claimSuccess && (
           <div style={{ padding: "20px 16px 0" }}>
             <div style={{ background: "white", border: "1.5px solid #e2e8f0", borderRadius: 16, padding: "18px 16px" }}>
-              <h2 style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>Ce colis vous appartient ?</h2>
+              <h2 style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>Réclamer ce colis</h2>
               <p style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>Renseignez vos informations pour réclamer ce colis.</p>
               <form onSubmit={handleClaim} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <input
