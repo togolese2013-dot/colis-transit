@@ -423,11 +423,11 @@ const AddPackage = () => {
           <div>
             <label className="form-label">Type d'envoi</label>
             <select name="shipping_type" className="form-input form-select" value={formData.shipping_type} onChange={handleChange}>
-              <option value="ORDINAIRE">Ordinaire</option>
-              <option value="TELEPHONE">Téléphone</option>
-              <option value="ORDINATEUR_PC">Ordinateur</option>
-              <option value="EXPRESS">Express</option>
-              <option value="COLIS_BATTERIE">Batterie</option>
+              <option value="ORDINAIRE">🚢 Ordinaire</option>
+              <option value="EXPRESS">✈️ Express</option>
+              <option value="COLIS_BATTERIE">🔋 Batterie</option>
+              <option value="TELEPHONE">📱 Téléphone</option>
+              <option value="ORDINATEUR_PC">💻 Ordinateur</option>
             </select>
           </div>
         </div>

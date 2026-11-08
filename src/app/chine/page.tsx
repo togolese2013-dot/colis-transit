@@ -392,10 +392,10 @@ function PackageHistory() {
         >
           <option value="">Tous les types</option>
           <option value="ORDINAIRE">🚢 Ordinaire</option>
-          <option value="TELEPHONE">📱 Téléphone</option>
-          <option value="ORDINATEUR_PC">💻 Ordinateur</option>
           <option value="EXPRESS">✈️ Express</option>
           <option value="COLIS_BATTERIE">🔋 Batterie</option>
+          <option value="TELEPHONE">📱 Téléphone</option>
+          <option value="ORDINATEUR_PC">💻 Ordinateur</option>
         </select>
       </div>
 
