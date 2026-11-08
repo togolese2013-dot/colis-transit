@@ -8,6 +8,8 @@ import { ChevronLeft, TrendingUp, Home, Plus, BarChart2, User, Users, DollarSign
 
 const PRICE_MAP: Record<string, number> = {
   ORDINAIRE: 10000,
+  TELEPHONE: 10000,
+  ORDINATEUR_PC: 13000,
   EXPRESS: 13000,
   COLIS_BATTERIE: 11000,
 };
@@ -61,7 +63,7 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [counts, setCounts] = useState({ china: 0, transit: 0, lome: 0, delivered: 0 });
-  const [typeCount, setTypeCount] = useState({ ORDINAIRE: 0, EXPRESS: 0, COLIS_BATTERIE: 0 });
+  const [typeCount, setTypeCount] = useState({ ORDINAIRE: 0, TELEPHONE: 0, ORDINATEUR_PC: 0, EXPRESS: 0, COLIS_BATTERIE: 0 });
   const [revenue, setRevenue] = useState(0);
   const [avgWeight, setAvgWeight] = useState<string>("—");
   const [weeklyData, setWeeklyData] = useState<number[]>(Array(8).fill(0));
@@ -77,6 +79,8 @@ export default function StatsPage() {
         { count: lomeCount },
         { count: deliveredCount },
         { count: ordCount },
+        { count: phoneCount },
+        { count: pcCount },
         { count: expCount },
         { count: batCount },
       ] = await Promise.all([
@@ -86,13 +90,15 @@ export default function StatsPage() {
         supabase.from("packages").select("*", { count: "exact", head: true }).eq("status", "ARRIVE_LOME"),
         supabase.from("packages").select("*", { count: "exact", head: true }).eq("status", "LIVRE"),
         supabase.from("packages").select("*", { count: "exact", head: true }).eq("shipping_type", "ORDINAIRE"),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("shipping_type", "TELEPHONE"),
+        supabase.from("packages").select("*", { count: "exact", head: true }).eq("shipping_type", "ORDINATEUR_PC"),
         supabase.from("packages").select("*", { count: "exact", head: true }).eq("shipping_type", "EXPRESS"),
         supabase.from("packages").select("*", { count: "exact", head: true }).eq("shipping_type", "COLIS_BATTERIE"),
       ]);
 
       setTotal(totalCount || 0);
       setCounts({ china: chinaCount || 0, transit: transitCount || 0, lome: lomeCount || 0, delivered: deliveredCount || 0 });
-      setTypeCount({ ORDINAIRE: ordCount || 0, EXPRESS: expCount || 0, COLIS_BATTERIE: batCount || 0 });
+      setTypeCount({ ORDINAIRE: ordCount || 0, TELEPHONE: phoneCount || 0, ORDINATEUR_PC: pcCount || 0, EXPRESS: expCount || 0, COLIS_BATTERIE: batCount || 0 });
 
       // 2. Revenue + avg weight — only LIVRE packages (bounded)
       const { data: livrePkgs } = await supabase
@@ -102,8 +108,12 @@ export default function StatsPage() {
         .not("weight_kg", "is", null);
 
       if (livrePkgs && livrePkgs.length > 0) {
-        const rev = livrePkgs.reduce((acc, p) => acc + (p.weight_kg * (PRICE_MAP[p.shipping_type] ?? 10000)), 0);
-        const avg = (livrePkgs.reduce((a, p) => a + p.weight_kg, 0) / livrePkgs.length).toFixed(1);
+        const rev = livrePkgs.reduce((acc, p) => {
+          const shippingType = p.shipping_type ?? "ORDINAIRE";
+          const amount = shippingType === "TELEPHONE" ? 10000 : shippingType === "ORDINATEUR_PC" ? Math.round((p.weight_kg ?? 0) * 13000) : (p.weight_kg ?? 0) * (PRICE_MAP[shippingType] ?? 10000);
+          return acc + amount;
+        }, 0);
+        const avg = (livrePkgs.reduce((a, p) => a + (p.weight_kg ?? 0), 0) / livrePkgs.length).toFixed(1);
         setRevenue(rev);
         setAvgWeight(avg);
       }
@@ -236,8 +246,10 @@ export default function StatsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {[
             { label: "Ordinaire", key: "ORDINAIRE", color: "#3b82f6", price: "10 000" },
-            { label: "Express 🚀", key: "EXPRESS", color: "#f97316", price: "13 000" },
-            { label: "Batterie 🔋", key: "COLIS_BATTERIE", color: "#f59e0b", price: "11 000" },
+            { label: "Téléphone", key: "TELEPHONE", color: "#10b981", price: "10 000" },
+            { label: "Ordinateur", key: "ORDINATEUR_PC", color: "#8b5cf6", price: "13 000 / kg" },
+            { label: "Express", key: "EXPRESS", color: "#f97316", price: "13 000" },
+            { label: "Batterie", key: "COLIS_BATTERIE", color: "#f59e0b", price: "11 000" },
           ].map(item => {
             const count = typeCount[item.key as keyof typeof typeCount];
             const pct = total > 0 ? Math.round((count / total) * 100) : 0;

@@ -4,12 +4,16 @@ const PHONE_ID = process.env.WHATSAPP_PHONE_ID
 
 const RATE: Record<string, number> = {
   ORDINAIRE: 10000,
+  TELEPHONE: 10000,
+  ORDINATEUR_PC: 13000,
   EXPRESS: 13000,
   COLIS_BATTERIE: 11000,
 }
 
 export function calculatePrice(weightKg: number, shippingType: string): number {
-  const rate = RATE[shippingType?.toUpperCase()] ?? 10000
+  const upper = shippingType?.toUpperCase() ?? ''
+  if (upper === 'TELEPHONE') return 10000
+  const rate = RATE[upper] ?? 10000
   return Math.round(weightKg * rate)
 }
 
@@ -133,7 +137,16 @@ export async function notifyClientColisRecu(params: {
   const weightFormatted = params.weightKg.toString().replace('.', ',')
   const templateName = process.env.WHATSAPP_TEMPLATE_COLIS_RECU ?? 'colis_recu_chine'
 
-  const typeLabel = params.shippingType?.toUpperCase() === 'EXPRESS' ? 'Express ⚡' : params.shippingType?.toUpperCase() === 'COLIS_BATTERIE' ? 'Colis Batterie 🔋' : 'Ordinaire ✈️'
+  const shippingUpper = params.shippingType?.toUpperCase() ?? ''
+  const typeLabel = shippingUpper === 'EXPRESS'
+    ? 'Express ⚡'
+    : shippingUpper === 'COLIS_BATTERIE'
+      ? 'Colis Batterie 🔋'
+      : shippingUpper === 'TELEPHONE'
+        ? 'Téléphone 📱'
+        : shippingUpper === 'ORDINATEUR_PC'
+          ? 'Ordinateur PC 💻'
+          : 'Ordinaire ✈️'
 
   return sendWhatsAppTemplate(params.phone, templateName, [
     params.customerName,

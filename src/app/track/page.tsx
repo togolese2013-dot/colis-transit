@@ -41,6 +41,8 @@ interface ParcelEvent {
 
 const PRICE_MAP: Record<string, number> = {
   ORDINAIRE: 10000,
+  TELEPHONE: 10000,
+  ORDINATEUR_PC: 13000,
   EXPRESS: 13000,
   COLIS_BATTERIE: 11000,
 };
@@ -82,6 +84,8 @@ const PROGRESS_TEXT: Record<DbStatus, string> = {
 
 const FORMULA_MAP: Record<string, string> = {
   ORDINAIRE: "Ordinaire",
+  TELEPHONE: "Téléphone",
+  ORDINATEUR_PC: "Ordinateur",
   EXPRESS: "Express",
   COLIS_BATTERIE: "Batterie",
 };
@@ -188,8 +192,10 @@ function formatAmount(n: number): string {
 }
 
 function calcAmount(shippingType: string, weightKg: number | null): number {
+  const upper = shippingType ?? 'ORDINAIRE';
+  if (upper === 'TELEPHONE') return 10000;
   if (!weightKg) return 0;
-  return Math.round(weightKg * (PRICE_MAP[shippingType] ?? 10000));
+  return Math.round(weightKg * (PRICE_MAP[upper] ?? 10000));
 }
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────

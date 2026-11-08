@@ -27,7 +27,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   LIVRE:       { label: 'Livré',         color: '#10b981', bg: '#d1fae5', border: '#a7f3d0', step: 4 },
 }
 
-const PRICE_MAP: Record<string, number> = { ORDINAIRE: 10000, EXPRESS: 13000, COLIS_BATTERIE: 11000 }
+const PRICE_MAP: Record<string, number> = { ORDINAIRE: 10000, TELEPHONE: 10000, ORDINATEUR_PC: 13000, EXPRESS: 13000, COLIS_BATTERIE: 11000 }
 
 type Tab = 'all' | 'active' | 'delivered'
 type Sort = 'desc' | 'asc'
@@ -74,8 +74,10 @@ export default function ClientDashboard() {
   }
 
   function getPrice(pkg: ClientPackage) {
+    const shippingType = pkg.shipping_type ?? 'ORDINAIRE'
+    if (shippingType === 'TELEPHONE') return '10 000'
     if (!pkg.weight_kg) return null
-    const rate = PRICE_MAP[pkg.shipping_type] ?? 10000
+    const rate = PRICE_MAP[shippingType] ?? 10000
     return (pkg.weight_kg * rate).toLocaleString('fr-FR')
   }
 
@@ -266,7 +268,7 @@ export default function ClientDashboard() {
                             {pkg.weight_kg && <span style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontWeight: '600' }}>⚖️ {pkg.weight_kg} kg</span>}
                             {pkg.shipping_type && (
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontWeight: '600' }}>
-                                {pkg.shipping_type === 'EXPRESS' ? '⚡ Express' : pkg.shipping_type === 'COLIS_BATTERIE' ? '🔋 Colis Batterie' : '🚢 Ordinaire'}
+                                {pkg.shipping_type === 'EXPRESS' ? '⚡ Express' : pkg.shipping_type === 'COLIS_BATTERIE' ? '🔋 Batterie' : pkg.shipping_type === 'TELEPHONE' ? '📱 Téléphone' : pkg.shipping_type === 'ORDINATEUR_PC' ? '💻 Ordinateur' : '🚢 Ordinaire'}
                               </span>
                             )}
                             {price && <span style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: '700' }}>{price} FCFA</span>}

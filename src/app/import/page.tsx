@@ -58,7 +58,12 @@ export default function ImportPage() {
         const weightRaw = resolveCol(row, ["weight_kg", "poids", "weight"]);
         const shippingRaw = resolveCol(row, ["shipping_type", "type", "envoi"]).toUpperCase();
         const weight = weightRaw ? parseFloat(weightRaw.replace(",", ".")) : null;
-        const shippingType = ["EXPRESS"].includes(shippingRaw) ? "EXPRESS" : ["COLIS_BATTERIE", "BATTERIE"].includes(shippingRaw) ? "COLIS_BATTERIE" : "ORDINAIRE";
+        const shippingType =
+          ["EXPRESS"].includes(shippingRaw) ? "EXPRESS" :
+          ["COLIS_BATTERIE", "BATTERIE"].includes(shippingRaw) ? "COLIS_BATTERIE" :
+          ["TELEPHONE", "TEL", "PHONE", "SMARTPHONE"].includes(shippingRaw) ? "TELEPHONE" :
+          ["ORDINATEUR_PC", "ORDINATEUR", "PC", "ORDI"].includes(shippingRaw) ? "ORDINATEUR_PC" :
+          "ORDINAIRE";
 
         if (!tracking) {
           return { tracking_number: "", customer_name: customerName, customer_phone: customerPhone, weight_kg: weight, shipping_type: shippingType, status: "error" as RowStatus, errorMsg: "Tracking manquant" };

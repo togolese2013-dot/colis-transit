@@ -30,6 +30,8 @@ export default function AdminPanel() {
 
   // Backup state
   const [backupLoading, setBackupLoading] = useState(false)
+  const [cleanupLoading, setCleanupLoading] = useState(false)
+  const [cleanupSummary, setCleanupSummary] = useState<{ candidateCount: number; deletedCount: number; cutoff: string; message: string } | null>(null)
   const [backupInfo, setBackupInfo] = useState<{ date: string; packages: number; customers: number; accounts: number } | null>(() => {
     try { const s = localStorage.getItem('last_backup'); return s ? JSON.parse(s) : null } catch { return null }
   })
@@ -59,6 +61,36 @@ export default function AdminPanel() {
       localStorage.setItem('last_backup', JSON.stringify(info))
     } catch { alert('Erreur inattendue') }
     finally { setBackupLoading(false) }
+  }
+
+  async function handleCleanupDelivered() {
+    const confirmed = window.confirm('Supprimer les colis livrés plus anciens que 365 jours ? Cette action supprime aussi les photos liées dans Supabase Storage.')
+    if (!confirmed) return
+
+    setCleanupLoading(true)
+    try {
+      const res = await fetch('/api/admin/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: 365, dryRun: false }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error ?? 'Erreur lors du nettoyage')
+        return
+      }
+      setCleanupSummary({
+        candidateCount: data.candidateCount,
+        deletedCount: data.deletedCount,
+        cutoff: data.cutoff,
+        message: data.message,
+      })
+      alert(data.message)
+    } catch {
+      alert('Erreur inattendue lors du nettoyage')
+    } finally {
+      setCleanupLoading(false)
+    }
   }
 
   // Users state
@@ -511,9 +543,44 @@ export default function AdminPanel() {
             </button>
           </div>
 
+          {/* Cleanup old delivered cards */}
+          <div className="card" style={{ borderColor: 'var(--warning-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1rem' }}>
+              <div style={{ width: '36px', height: '36px', background: '#fff7ed', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={17} color="#f59e0b" />
+              </div>
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '0.9375rem', color: 'var(--text-1)' }}>Nettoyage de stockage</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Colis livrés de plus de 365 jours</div>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '0.875rem', marginBottom: '1rem', fontSize: '0.8125rem', color: 'var(--text-3)', lineHeight: 1.6 }}>
+              Supprime les anciens colis livrés et les photos associées dans le bucket Supabase <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--border)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>packages</code> pour limiter la croissance du stockage.
+            </div>
+
+            <button
+              onClick={handleCleanupDelivered}
+              disabled={cleanupLoading}
+              className="btn btn-warning btn-full"
+              style={{ opacity: cleanupLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              {cleanupLoading ? <><span className="spinner" /> Nettoyage…</> : <><Trash2 size={16} /> Nettoyer les anciens colis livrés</>}
+            </button>
+
+            {cleanupSummary && (
+              <div style={{ marginTop: '0.9rem', background: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '0.75rem', fontSize: '0.75rem', lineHeight: 1.6, color: 'var(--text-2)' }}>
+                <div><strong>Échéance :</strong> {new Date(cleanupSummary.cutoff).toLocaleString('fr-FR')}</div>
+                <div><strong>Détectés :</strong> {cleanupSummary.candidateCount}</div>
+                <div><strong>Supprimés :</strong> {cleanupSummary.deletedCount}</div>
+                <div><strong>Message :</strong> {cleanupSummary.message}</div>
+              </div>
+            )}
+          </div>
+
           {/* Warning */}
           <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 'var(--r-md)', padding: '0.875rem', fontSize: '0.8125rem', color: '#92400e', lineHeight: 1.6 }}>
-            ⚠️ Conservez ce fichier dans un endroit sécurisé. Faites une sauvegarde régulièrement (hebdomadaire recommandé).
+            ⚠️ Conservez ce fichier dans un endroit sécurisé. Faites une sauvegarde régulièrement (hebdomadaire recommandé). Le nettoyage automatique est configuré via une route cron Vercel et la variable <code style={{ fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.04)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>AUTO_DELETE_DELIVERED_DAYS</code>.
           </div>
         </div>
       )}

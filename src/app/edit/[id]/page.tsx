@@ -288,10 +288,10 @@ export default function EditPackage() {
               <span style={{
                 fontSize: '0.75rem', fontWeight: '700', padding: '0.2rem 0.6rem',
                 borderRadius: 'var(--r-full)',
-                background: pkg.shipping_type === 'EXPRESS' ? '#fff7ed' : pkg.shipping_type === 'COLIS_BATTERIE' ? '#fdf4ff' : '#f0fdf4',
-                color: pkg.shipping_type === 'EXPRESS' ? '#c2410c' : pkg.shipping_type === 'COLIS_BATTERIE' ? '#7e22ce' : '#15803d',
+                background: pkg.shipping_type === 'EXPRESS' ? '#fff7ed' : pkg.shipping_type === 'COLIS_BATTERIE' ? '#fdf4ff' : pkg.shipping_type === 'TELEPHONE' ? '#ecfdf5' : pkg.shipping_type === 'ORDINATEUR_PC' ? '#f5f3ff' : '#f0fdf4',
+                color: pkg.shipping_type === 'EXPRESS' ? '#c2410c' : pkg.shipping_type === 'COLIS_BATTERIE' ? '#7e22ce' : pkg.shipping_type === 'TELEPHONE' ? '#166534' : pkg.shipping_type === 'ORDINATEUR_PC' ? '#6d28d9' : '#15803d',
               }}>
-                {pkg.shipping_type === 'EXPRESS' ? '✈️ Express' : pkg.shipping_type === 'COLIS_BATTERIE' ? '🔋 Batterie' : '🚢 Ordinaire'}
+                {pkg.shipping_type === 'EXPRESS' ? '✈️ Express' : pkg.shipping_type === 'COLIS_BATTERIE' ? '🔋 Batterie' : pkg.shipping_type === 'TELEPHONE' ? '📱 Téléphone' : pkg.shipping_type === 'ORDINATEUR_PC' ? '💻 Ordinateur' : '🚢 Ordinaire'}
               </span>
             </div>
           )}

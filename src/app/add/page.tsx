@@ -30,6 +30,8 @@ const AddPackage = () => {
     status: "RECU_CHINE",
   });
 
+  const isPhoneShippingType = formData.shipping_type === "TELEPHONE";
+
   useEffect(() => {
     const tracking = searchParams.get('tracking');
     if (tracking) setFormData(prev => ({ ...prev, tracking_number: tracking }));
@@ -406,15 +408,26 @@ const AddPackage = () => {
         {/* Weight & type */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
           <div>
-            <label className="form-label">Poids (kg)</label>
-            <input type="number" step="0.01" name="weight_kg" className="form-input" placeholder="0.00" value={formData.weight_kg} onChange={handleChange} />
+            <label className="form-label">{isPhoneShippingType ? 'Unité' : 'Poids (kg)'}</label>
+            <input
+              type="number"
+              step={isPhoneShippingType ? '1' : '0.01'}
+              min={isPhoneShippingType ? '1' : '0'}
+              name="weight_kg"
+              className="form-input"
+              placeholder={isPhoneShippingType ? '1' : '0.00'}
+              value={formData.weight_kg}
+              onChange={handleChange}
+            />
           </div>
           <div>
             <label className="form-label">Type d'envoi</label>
             <select name="shipping_type" className="form-input form-select" value={formData.shipping_type} onChange={handleChange}>
               <option value="ORDINAIRE">Ordinaire</option>
-              <option value="EXPRESS">Express 🚀</option>
-              <option value="COLIS_BATTERIE">Colis Batterie 🔋</option>
+              <option value="TELEPHONE">Téléphone</option>
+              <option value="ORDINATEUR_PC">Ordinateur</option>
+              <option value="EXPRESS">Express</option>
+              <option value="COLIS_BATTERIE">Batterie</option>
             </select>
           </div>
         </div>
