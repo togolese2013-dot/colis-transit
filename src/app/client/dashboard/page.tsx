@@ -75,7 +75,10 @@ export default function ClientDashboard() {
 
   function getPrice(pkg: ClientPackage) {
     const shippingType = pkg.shipping_type ?? 'ORDINAIRE'
-    if (shippingType === 'TELEPHONE') return '10 000'
+    if (shippingType === 'TELEPHONE') {
+      if (pkg.weight_kg == null) return null
+      return (pkg.weight_kg * 10000).toLocaleString('fr-FR')
+    }
     if (!pkg.weight_kg) return null
     const rate = PRICE_MAP[shippingType] ?? 10000
     return (pkg.weight_kg * rate).toLocaleString('fr-FR')

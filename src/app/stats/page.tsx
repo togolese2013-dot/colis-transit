@@ -110,7 +110,11 @@ export default function StatsPage() {
       if (livrePkgs && livrePkgs.length > 0) {
         const rev = livrePkgs.reduce((acc, p) => {
           const shippingType = p.shipping_type ?? "ORDINAIRE";
-          const amount = shippingType === "TELEPHONE" ? 10000 : shippingType === "ORDINATEUR_PC" ? Math.round((p.weight_kg ?? 0) * 13000) : (p.weight_kg ?? 0) * (PRICE_MAP[shippingType] ?? 10000);
+          const amount = shippingType === "TELEPHONE"
+            ? Math.round((p.weight_kg ?? 0) * 10000)
+            : shippingType === "ORDINATEUR_PC"
+              ? Math.round((p.weight_kg ?? 0) * 13000)
+              : (p.weight_kg ?? 0) * (PRICE_MAP[shippingType] ?? 10000);
           return acc + amount;
         }, 0);
         const avg = (livrePkgs.reduce((a, p) => a + (p.weight_kg ?? 0), 0) / livrePkgs.length).toFixed(1);

@@ -12,7 +12,7 @@ const RATE: Record<string, number> = {
 
 export function calculatePrice(weightKg: number, shippingType: string): number {
   const upper = shippingType?.toUpperCase() ?? ''
-  if (upper === 'TELEPHONE') return 10000
+  if (upper === 'TELEPHONE') return Math.round((weightKg ?? 0) * 10000)
   const rate = RATE[upper] ?? 10000
   return Math.round(weightKg * rate)
 }

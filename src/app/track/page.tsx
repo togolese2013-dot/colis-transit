@@ -193,7 +193,7 @@ function formatAmount(n: number): string {
 
 function calcAmount(shippingType: string, weightKg: number | null): number {
   const upper = shippingType ?? 'ORDINAIRE';
-  if (upper === 'TELEPHONE') return 10000;
+  if (upper === 'TELEPHONE') return Math.round((weightKg ?? 0) * 10000);
   if (!weightKg) return 0;
   return Math.round(weightKg * (PRICE_MAP[upper] ?? 10000));
 }
