@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useRef } from "react";
+import React, { Suspense, useEffect, useLayoutEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -74,6 +74,10 @@ function PackageHistory() {
   const [filterShipping, setFilterShipping] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
   const [fetchKey, setFetchKey] = useState(0);
+  const [isRestoringTarget, setIsRestoringTarget] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(sessionStorage.getItem(LAST_PACKAGE_KEY));
+  });
   const PAGE_SIZE = 20;
 
   const rawPage = parseInt(searchParams.get('page') || '1', 10);
@@ -192,31 +196,48 @@ function PackageHistory() {
     return () => { cancelled = true; };
   }, [showArchived, filterShipping, activeFilter, debouncedSearch, page, fetchKey]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const targetId = sessionStorage.getItem(LAST_PACKAGE_KEY);
-    if (!targetId) return;
+    if (!targetId) {
+      setIsRestoringTarget(false);
+      return;
+    }
 
-    const timer = window.setTimeout(() => {
+    setIsRestoringTarget(true);
+    let cancelled = false;
+    let rafId: number | undefined;
+
+    const tryFindTarget = () => {
+      if (cancelled) return;
+
       const element = Array.from(document.querySelectorAll('[data-package-id]')).find(
         (node) => node.getAttribute('data-package-id') === targetId
       ) as HTMLElement | undefined;
 
-      if (element) {
-        const top = Math.max(0, element.offsetTop - 120);
-        window.scrollTo({ top, left: 0, behavior: 'auto' });
-        element.style.outline = '2px solid rgba(249, 115, 22, 0.6)';
-        element.style.outlineOffset = '4px';
-        window.setTimeout(() => {
-          element.style.outline = '';
-          element.style.outlineOffset = '';
-          try { sessionStorage.removeItem(LAST_PACKAGE_KEY); } catch {}
-        }, 1800);
-      } else {
-        try { sessionStorage.removeItem(LAST_PACKAGE_KEY); } catch {}
+      if (!element) {
+        rafId = window.requestAnimationFrame(tryFindTarget);
+        return;
       }
-    }, 180);
 
-    return () => window.clearTimeout(timer);
+      const top = Math.max(0, element.offsetTop - 120);
+      document.body.style.visibility = 'visible';
+      window.scrollTo({ top, left: 0, behavior: 'auto' });
+      element.style.outline = '2px solid rgba(249, 115, 22, 0.6)';
+      element.style.outlineOffset = '4px';
+      setIsRestoringTarget(false);
+      window.setTimeout(() => {
+        element.style.outline = '';
+        element.style.outlineOffset = '';
+        try { sessionStorage.removeItem(LAST_PACKAGE_KEY); } catch {}
+      }, 1800);
+    };
+
+    tryFindTarget();
+
+    return () => {
+      cancelled = true;
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
   }, [page, packages.length, debouncedSearch, activeFilter, filterShipping, showArchived]);
 
   // Realtime — notifications only, then refetch
@@ -297,7 +318,14 @@ function PackageHistory() {
   };
 
   return (
-    <div className="container" style={{ paddingTop: '0.25rem', paddingBottom: '120px' }}>
+    <div
+      className="container"
+      style={{
+        paddingTop: '0.25rem',
+        paddingBottom: '120px',
+        visibility: isRestoringTarget ? 'hidden' : 'visible',
+      }}
+    >
 
       {/* Header */}
       <div className="page-header">

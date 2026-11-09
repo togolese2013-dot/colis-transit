@@ -11,6 +11,11 @@ export default function ScrollRestorer() {
     if (typeof window === 'undefined') return;
     window.history.scrollRestoration = 'manual';
 
+    const hasPendingPackageTarget = sessionStorage.getItem('chine_last_package_id');
+    if (hasPendingPackageTarget) {
+      return;
+    }
+
     const savedScroll = sessionStorage.getItem(`scroll:${routeKey}`);
     if (savedScroll) {
       const scrollTop = Number(savedScroll);

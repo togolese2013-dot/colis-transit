@@ -112,6 +112,8 @@ export default function EditPackage() {
     }
 
     try {
+      window.history.scrollRestoration = 'manual';
+      document.body.style.visibility = 'hidden';
       sessionStorage.setItem('chine_last_package_id', String(pkg.id));
       const savedPage = Number(sessionStorage.getItem('chine_last_page'));
       if (!Number.isNaN(savedPage) && savedPage > 0) {
