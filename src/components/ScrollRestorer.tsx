@@ -9,7 +9,10 @@ export default function ScrollRestorer() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.history.scrollRestoration = 'manual';
+
+    try {
+      window.history.scrollRestoration = 'manual';
+    } catch {}
 
     const hasPendingPackageTarget = sessionStorage.getItem('chine_last_package_id');
     if (hasPendingPackageTarget) {

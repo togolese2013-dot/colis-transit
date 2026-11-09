@@ -113,21 +113,15 @@ export default function EditPackage() {
 
     try {
       window.history.scrollRestoration = 'manual';
-      document.body.style.visibility = 'hidden';
       sessionStorage.setItem('chine_last_package_id', String(pkg.id));
       const savedPage = Number(sessionStorage.getItem('chine_last_page'));
       if (!Number.isNaN(savedPage) && savedPage > 0) {
-        window.location.assign(`/chine?page=${savedPage}`);
+        router.push(`/chine?page=${savedPage}`, { scroll: false });
         return;
       }
     } catch {}
 
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-
-    window.location.assign('/chine?page=1');
+    router.push('/chine?page=1', { scroll: false });
   };
 
   const lightboxPrev = () => setLightboxIndex(i => i !== null ? (i - 1 + photoUrls.length) % photoUrls.length : null);

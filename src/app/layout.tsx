@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { JwtRefresher } from "@/components/JwtRefresher";
 import ScrollRestorer from "@/components/ScrollRestorer";
-import AppReady from "@/components/AppReady";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,10 +37,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable}`}>
-      <body style={{ visibility: 'hidden' }} suppressHydrationWarning>
+      <body>
         <JwtRefresher />
         <ScrollRestorer />
-        <AppReady />
         {children}
       </body>
     </html>

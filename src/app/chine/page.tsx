@@ -74,18 +74,24 @@ function PackageHistory() {
   const [filterShipping, setFilterShipping] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
   const [fetchKey, setFetchKey] = useState(0);
-  const [isRestoringTarget, setIsRestoringTarget] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return Boolean(sessionStorage.getItem(LAST_PACKAGE_KEY));
-  });
+  const [isRestoringTarget, setIsRestoringTarget] = useState(false);
   const PAGE_SIZE = 20;
 
   const rawPage = parseInt(searchParams.get('page') || '1', 10);
   const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
 
   const goToPage = (p: number) => {
+    try {
+      window.history.scrollRestoration = 'manual';
+    } catch {}
     router.push(`/chine?page=${p}`, { scroll: false });
   };
+
+  useEffect(() => {
+    try {
+      window.history.scrollRestoration = 'manual';
+    } catch {}
+  }, []);
 
   const persistListPage = (pkgId?: string) => {
     try {
@@ -220,7 +226,6 @@ function PackageHistory() {
       }
 
       const top = Math.max(0, element.offsetTop - 120);
-      document.body.style.visibility = 'visible';
       window.scrollTo({ top, left: 0, behavior: 'auto' });
       element.style.outline = '2px solid rgba(249, 115, 22, 0.6)';
       element.style.outlineOffset = '4px';
