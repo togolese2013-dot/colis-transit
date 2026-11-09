@@ -13,6 +13,7 @@ const LIST_COLS = 'id,tracking_number,customer_name,customer_phone,status,shippi
 
 const CACHE_KEY = 'chine_cache_v1';
 const LAST_PACKAGE_KEY = 'chine_last_package_id';
+const LAST_SEARCH_STATE_KEY = 'chine_last_search_state';
 
 function readCache() {
   try {
@@ -96,6 +97,13 @@ function PackageHistory() {
   const persistListPage = (pkgId?: string) => {
     try {
       sessionStorage.setItem('chine_last_page', String(page));
+      sessionStorage.setItem(LAST_SEARCH_STATE_KEY, JSON.stringify({
+        page,
+        searchQuery,
+        activeFilter,
+        filterShipping,
+        showArchived,
+      }));
       if (pkgId) {
         sessionStorage.setItem(LAST_PACKAGE_KEY, pkgId);
       }
@@ -115,6 +123,7 @@ function PackageHistory() {
   const [notifOpen, setNotifOpen] = useState(false);
   const packagesRef = useRef<any[]>([]);
   const hasUserTypedSearch = useRef(false);
+  const isRestoringSavedView = useRef(false);
 
   const saveNotifications = (notifs: ClaimNotif[]) => {
     setNotifications(notifs);
@@ -124,6 +133,12 @@ function PackageHistory() {
   // Debounce search — wait 400ms after typing stops.
   // Ignore initial empty mount so an already-open page like ?page=4 is not forced back to page 1.
   useEffect(() => {
+    if (isRestoringSavedView.current) {
+      isRestoringSavedView.current = false;
+      setDebouncedSearch(searchQuery);
+      return;
+    }
+
     if (!hasUserTypedSearch.current && searchQuery === '') {
       return;
     }
@@ -202,6 +217,32 @@ function PackageHistory() {
     return () => { cancelled = true; };
   }, [showArchived, filterShipping, activeFilter, debouncedSearch, page, fetchKey]);
 
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(LAST_SEARCH_STATE_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as {
+        page?: number;
+        searchQuery?: string;
+        activeFilter?: string | null;
+        filterShipping?: string;
+        showArchived?: boolean;
+      };
+
+      if (typeof parsed.searchQuery === 'string') {
+        setSearchQuery(parsed.searchQuery);
+        setDebouncedSearch(parsed.searchQuery);
+        isRestoringSavedView.current = true;
+        hasUserTypedSearch.current = true;
+      }
+      if (parsed.activeFilter !== undefined) setActiveFilter(parsed.activeFilter || null);
+      if (typeof parsed.filterShipping === 'string') setFilterShipping(parsed.filterShipping);
+      if (typeof parsed.showArchived === 'boolean') setShowArchived(parsed.showArchived);
+
+      sessionStorage.removeItem(LAST_SEARCH_STATE_KEY);
+    } catch {}
+  }, []);
+
   useLayoutEffect(() => {
     const targetId = sessionStorage.getItem(LAST_PACKAGE_KEY);
     if (!targetId) {
@@ -212,6 +253,13 @@ function PackageHistory() {
     setIsRestoringTarget(true);
     let cancelled = false;
     let rafId: number | undefined;
+    let attempts = 0;
+    const maxAttempts = 80;
+
+    const finishRestore = () => {
+      setIsRestoringTarget(false);
+      try { sessionStorage.removeItem(LAST_PACKAGE_KEY); } catch {}
+    };
 
     const tryFindTarget = () => {
       if (cancelled) return;
@@ -221,6 +269,11 @@ function PackageHistory() {
       ) as HTMLElement | undefined;
 
       if (!element) {
+        attempts += 1;
+        if (attempts >= maxAttempts) {
+          finishRestore();
+          return;
+        }
         rafId = window.requestAnimationFrame(tryFindTarget);
         return;
       }
@@ -229,11 +282,10 @@ function PackageHistory() {
       window.scrollTo({ top, left: 0, behavior: 'auto' });
       element.style.outline = '2px solid rgba(249, 115, 22, 0.6)';
       element.style.outlineOffset = '4px';
-      setIsRestoringTarget(false);
+      finishRestore();
       window.setTimeout(() => {
         element.style.outline = '';
         element.style.outlineOffset = '';
-        try { sessionStorage.removeItem(LAST_PACKAGE_KEY); } catch {}
       }, 1800);
     };
 
@@ -328,7 +380,6 @@ function PackageHistory() {
       style={{
         paddingTop: '0.25rem',
         paddingBottom: '120px',
-        visibility: isRestoringTarget ? 'hidden' : 'visible',
       }}
     >
 
