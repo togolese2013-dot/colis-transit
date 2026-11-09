@@ -12,6 +12,7 @@ import GlobalSearch from "@/components/GlobalSearch";
 const LIST_COLS = 'id,tracking_number,customer_name,customer_phone,status,shipping_type,created_at,archived_at,created_by,transit_by';
 
 const CACHE_KEY = 'chine_cache_v1';
+const LAST_PACKAGE_KEY = 'chine_last_package_id';
 
 function readCache() {
   try {
@@ -79,7 +80,16 @@ function PackageHistory() {
   const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
 
   const goToPage = (p: number) => {
-    router.replace(`/chine?page=${p}`, { scroll: false });
+    router.push(`/chine?page=${p}`, { scroll: false });
+  };
+
+  const persistListPage = (pkgId?: string) => {
+    try {
+      sessionStorage.setItem('chine_last_page', String(page));
+      if (pkgId) {
+        sessionStorage.setItem(LAST_PACKAGE_KEY, pkgId);
+      }
+    } catch {}
   };
 
   const refetch = () => setFetchKey(k => k + 1);
@@ -94,15 +104,25 @@ function PackageHistory() {
   });
   const [notifOpen, setNotifOpen] = useState(false);
   const packagesRef = useRef<any[]>([]);
+  const hasUserTypedSearch = useRef(false);
 
   const saveNotifications = (notifs: ClaimNotif[]) => {
     setNotifications(notifs);
     try { localStorage.setItem('chine_notifications', JSON.stringify(notifs)); } catch {}
   };
 
-  // Debounce search — wait 400ms after typing stops
+  // Debounce search — wait 400ms after typing stops.
+  // Ignore initial empty mount so an already-open page like ?page=4 is not forced back to page 1.
   useEffect(() => {
-    const t = setTimeout(() => { setDebouncedSearch(searchQuery); goToPage(1); }, 400);
+    if (!hasUserTypedSearch.current && searchQuery === '') {
+      return;
+    }
+
+    hasUserTypedSearch.current = true;
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      goToPage(1);
+    }, 400);
     return () => clearTimeout(t);
   }, [searchQuery]);
 
@@ -171,6 +191,33 @@ function PackageHistory() {
     fetchData();
     return () => { cancelled = true; };
   }, [showArchived, filterShipping, activeFilter, debouncedSearch, page, fetchKey]);
+
+  useEffect(() => {
+    const targetId = sessionStorage.getItem(LAST_PACKAGE_KEY);
+    if (!targetId) return;
+
+    const timer = window.setTimeout(() => {
+      const element = Array.from(document.querySelectorAll('[data-package-id]')).find(
+        (node) => node.getAttribute('data-package-id') === targetId
+      ) as HTMLElement | undefined;
+
+      if (element) {
+        const top = Math.max(0, element.offsetTop - 120);
+        window.scrollTo({ top, left: 0, behavior: 'auto' });
+        element.style.outline = '2px solid rgba(249, 115, 22, 0.6)';
+        element.style.outlineOffset = '4px';
+        window.setTimeout(() => {
+          element.style.outline = '';
+          element.style.outlineOffset = '';
+          try { sessionStorage.removeItem(LAST_PACKAGE_KEY); } catch {}
+        }, 1800);
+      } else {
+        try { sessionStorage.removeItem(LAST_PACKAGE_KEY); } catch {}
+      }
+    }, 180);
+
+    return () => window.clearTimeout(timer);
+  }, [page, packages.length, debouncedSearch, activeFilter, filterShipping, showArchived]);
 
   // Realtime — notifications only, then refetch
   useEffect(() => {
@@ -289,7 +336,7 @@ function PackageHistory() {
                 ) : (
                   <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
                     {notifications.map((n, i) => (
-                      <div key={i} onClick={() => { setNotifOpen(false); saveNotifications(notifications.filter((_, j) => j !== i)); router.push(`/edit/${n.id}`); }}
+                      <div key={i} onClick={() => { setNotifOpen(false); saveNotifications(notifications.filter((_, j) => j !== i)); persistListPage(); router.push(`/edit/${n.id}`); }}
                         style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)', background: i === 0 ? 'var(--accent-subtle)' : 'var(--bg)', cursor: 'pointer', transition: 'background 0.1s' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-subtle)')}
                         onMouseLeave={e => (e.currentTarget.style.background = i === 0 ? 'var(--accent-subtle)' : 'var(--bg)')}
@@ -428,8 +475,8 @@ function PackageHistory() {
             )}
             <Link href={isSelectionMode ? '#' : `/edit/${pkg.id}`}
               style={{ textDecoration: 'none', color: 'inherit', flex: 1 }}
-              onClick={isSelectionMode ? (e) => { e.preventDefault(); toggleSelection(pkg.id); } : undefined}>
-              <div className={`pkg-item ${selectedIds.includes(pkg.id) ? 'is-selected' : ''}`}>
+              onClick={isSelectionMode ? (e) => { e.preventDefault(); toggleSelection(pkg.id); } : () => persistListPage(pkg.id)}>
+              <div className={`pkg-item ${selectedIds.includes(pkg.id) ? 'is-selected' : ''}`} data-package-id={pkg.id}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="pkg-number">{pkg.tracking_number}</div>
                   <div className="pkg-meta">

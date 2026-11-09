@@ -84,7 +84,7 @@ export default function EditPackage() {
     e.preventDefault();
     setSaving(true);
     const { error: updateError } = await supabase.from('packages').update({ status, notes: notes || null }).eq('id', id);
-    if (!updateError) router.push("/chine");
+    if (!updateError) goBackToList();
     setSaving(false);
   };
 
@@ -97,12 +97,35 @@ export default function EditPackage() {
       body: JSON.stringify({ id: pkg.id }),
     });
     if (res.ok) {
-      router.push("/chine");
+      goBackToList();
     } else {
       const data = await res.json();
       alert("Erreur : " + (data.error || 'inconnue'));
       setSaving(false);
     }
+  };
+
+  const goBackToList = () => {
+    if (typeof window === 'undefined') {
+      router.push('/chine?page=1');
+      return;
+    }
+
+    try {
+      sessionStorage.setItem('chine_last_package_id', String(pkg.id));
+      const savedPage = Number(sessionStorage.getItem('chine_last_page'));
+      if (!Number.isNaN(savedPage) && savedPage > 0) {
+        window.location.assign(`/chine?page=${savedPage}`);
+        return;
+      }
+    } catch {}
+
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    window.location.assign('/chine?page=1');
   };
 
   const lightboxPrev = () => setLightboxIndex(i => i !== null ? (i - 1 + photoUrls.length) % photoUrls.length : null);
@@ -138,7 +161,7 @@ export default function EditPackage() {
       {/* Header */}
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button className="back-btn" onClick={() => router.push("/chine")} type="button">
+          <button className="back-btn" onClick={goBackToList} type="button">
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
           <span className="page-title">Détails colis</span>
