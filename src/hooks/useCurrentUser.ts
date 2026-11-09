@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 
 export function useCurrentUser() {
   const [displayName, setDisplayName] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('hc_display_name') || localStorage.getItem('hc_user') || ''
+    if (typeof window === 'undefined') {
+      return ''
     }
-    return ''
+    return localStorage.getItem('hc_display_name') || localStorage.getItem('hc_user') || ''
   })
 
   useEffect(() => {

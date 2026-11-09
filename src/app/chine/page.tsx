@@ -16,6 +16,7 @@ const LAST_PACKAGE_KEY = 'chine_last_package_id';
 const LAST_SEARCH_STATE_KEY = 'chine_last_search_state';
 
 function readCache() {
+  if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -23,6 +24,7 @@ function readCache() {
 }
 
 function writeCache(data: { packages: any[]; stats: any; totalCount: number }) {
+  if (typeof window === 'undefined') return;
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
 }
 
@@ -114,6 +116,7 @@ function PackageHistory() {
 
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [notifications, setNotifications] = useState<ClaimNotif[]>(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const saved = localStorage.getItem('chine_notifications');
       if (!saved) return [];
